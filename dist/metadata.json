@@ -32,6 +32,16 @@
       "type": "d1"
     },
     {
+      "environment": "production",
+      "name": "GARMIN_SYNC",
+      "service": "jamtytrack-garmin-sync",
+      "type": "service"
+    },
+    {
+      "name": "GARMIN_SYNC_TOKEN",
+      "type": "inherit"
+    },
+    {
       "name": "OPENROUTER_API_KEY",
       "type": "inherit"
     },
@@ -43,18 +53,9 @@
     {
       "name": "TELEGRAM_WEBHOOK_SECRET",
       "type": "inherit"
-    },
-    {
-      "name": "GARMIN_SYNC",
-      "type": "service",
-      "service": "jamtytrack-garmin-sync"
-    },
-    {
-      "name": "GARMIN_SYNC_TOKEN",
-      "type": "inherit"
     }
   ],
   "annotations": {
-    "workers/message": "Add protected Garmin connection and sync controls while preserving the recovered app"
+    "workers/message": "Move Garmin connection controls into existing Settings; preserve connected session and diary"
   }
 }

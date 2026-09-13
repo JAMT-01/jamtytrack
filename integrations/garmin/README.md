@@ -1,7 +1,8 @@
 # Garmin walking sync
 
-Production Worker: `jamtytrack-garmin-sync`. Connection page:
-<https://jamtytrack.montagnertudor.org/garmin> (also linked from Habits).
+Production Worker: `jamtytrack-garmin-sync`. Connection controls live in
+**Settings → Garmin Connect**, alongside the other integrations. The existing
+<https://jamtytrack.montagnertudor.org/garmin> bookmark redirects to that card.
 
 This is a personal, unofficial Garmin Connect integration. It uses the login,
 MFA, token exchange, refresh, and activity-list protocol documented in the
@@ -18,6 +19,13 @@ The main application's existing login gate protects `/garmin` and
 `dist/worker.js`, before the asset fallback. POST requests require the app's
 origin. The proxy strips browser cookies and adds a dedicated service secret.
 The connector's `workers.dev` and preview URLs are disabled.
+
+`src/settings.ts` mounts the connection panel inside the existing Settings page,
+using the same forms and client behavior as the private standalone fallback.
+Controls are scoped to a shadow root so they cannot disable other Settings forms.
+Leaving Settings disposes the countdown timer; returning fetches connection status
+again. The panel only reads status on mount and does not trigger a Garmin sync.
+The former Habits toolbar link has been removed.
 
 Bindings:
 
@@ -83,7 +91,7 @@ activity titles/routes.
 updates/deletions, manual overrides, transaction rollback, concurrency, encrypted
 storage, MFA, rejected requests, and cooldown behavior in the API and browser
 client (including failed status refreshes and timer expiry without requests).
-The main bundle has seven passing login and
+The main bundle has eight passing login and
 gateway tests covering authentication and cross-origin requests.
 
 Cloudflare deployment was tested directly: the connection status endpoint returns
@@ -93,12 +101,15 @@ authenticated access. The owner's first sign-in attempt at 18:25:40 UTC returned
 a Garmin rate-limit response. No session was saved and no activities were imported.
 The local cooldown expires at 19:25:40 UTC (16:25:40 in Buenos Aires). The precise
 upstream login stage and reason for the rejection were not captured. Authenticated
-activity access remains unverified; the cron is deployed but inactive until
-connection succeeds.
+activity access was unverified at that point. The owner subsequently connected
+successfully; before the Settings move, production had an encrypted session,
+sync enabled, no pending MFA or error, and a successful sync at 19:55:30 UTC.
 
 Main app version at setup: `1246069c-0e3a-454e-a058-535324d5cca3`.
 Connector version at setup: `eed6fea5-d9de-429b-b3c5-a71ad6fba671`.
 Connector version with cooldown fix: `15e98662-815c-4456-b54f-266da0c6c67e`.
+Main app version with Settings integration: `88b30764-a4cf-4d8e-ae31-a7a469a8bfbc`.
+Connector version with Settings integration: `d4f73260-ab6f-4889-853c-77f040936e05`.
 The existing 50 meals and nine habit entries were unchanged before connection.
 
 The main app is the recovered `master` artifact. Do not deploy the separate

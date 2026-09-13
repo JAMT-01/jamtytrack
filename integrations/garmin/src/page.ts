@@ -11,13 +11,15 @@ export const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <section><h2>How it works</h2><p>Save a <strong>Walk</strong> activity on your Garmin and sync the watch with Garmin Connect. Jamtytrack checks every 15 minutes and adds up your recorded walking distances using your app’s timezone.</p><p>Automatic check-ins begin today. Your existing manual history stays intact. You can disconnect at any time.</p><p class="muted">This is a personal, unofficial Garmin integration. If Garmin requires verification or rejects cloud access, we’ll show the problem here and pause syncing.</p></section>
 <footer>Connection details are sent only to Garmin and your own Jamtytrack services. Meal and photo data are not sent to Garmin.</footer></main></body></html>`;
 
-export const CLIENT = `'use strict';
-const byId=id=>document.getElementById(id);let busy=false;let connected=false;let cooldownUntil=0;
+// Shared by the standalone fallback and the Settings card. All controls and
+// mutable state belong to one root; leaving Settings disposes its timer.
+export const CLIENT_BODY = `'use strict';
+const byId=id=>root.getElementById(id);let busy=false;let connected=false;let cooldownUntil=0;
 function message(text,error=false){byId('message').textContent=text;byId('message').classList.toggle('error',error);}
 function paused(){return cooldownUntil>Date.now();}
 function buttons(){
- document.querySelectorAll('button').forEach(b=>b.disabled=busy);
- document.querySelectorAll('button[type="submit"]').forEach(b=>b.disabled=busy||paused());
+ root.querySelectorAll('button').forEach(b=>b.disabled=busy);
+ root.querySelectorAll('button[type="submit"]').forEach(b=>b.disabled=busy||paused());
  byId('sync').disabled=busy||!connected||paused();
 }
 function cooldown(){
@@ -67,5 +69,8 @@ byId('sync').addEventListener('click',()=>{if(!paused())run(()=>api('sync',{}),'
 byId('disconnect').addEventListener('click',()=>run(()=>api('disconnect',{}),'Disconnecting Garmin…'));
 byId('restart').addEventListener('click',()=>run(()=>api('cancel',{}),'Resetting sign-in…'));
 refresh().catch(error=>message(error.message,true));
-setInterval(cooldown,1000);
+const timer=setInterval(cooldown,1000);
+return ()=>clearInterval(timer);
 `;
+
+export const CLIENT = '(function(root){'+CLIENT_BODY+'})(document);';

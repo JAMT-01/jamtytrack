@@ -789,9 +789,6 @@ export const HABITS_CLIENT_SOURCE = /* javascript */ `
 
     var bar = el('div', { class: 'bar' });
     bar.appendChild(el('h2', null, 'Habits'));
-    var garminLink = el('a', { href: '/garmin', title: 'Sync recorded walks from Garmin' }, 'Garmin sync');
-    garminLink.style.cssText = 'font:600 13px system-ui;color:inherit;margin-left:auto;margin-right:16px;';
-    bar.appendChild(garminLink);
     var closeButton = el('button', { class: 'x', 'aria-label': 'Close habits' }, '\\u00d7');
     closeButton.addEventListener('click', close);
     bar.appendChild(closeButton);
@@ -1178,7 +1175,7 @@ export function injectHabitsClient(response: Response): Response {
   return new HTMLRewriter()
     .on('head', {
       element(element) {
-        element.append('<script src="/habits-client.js?v=20260913-garmin" defer></script>', { html: true });
+        element.append('<script src="/habits-client.js?v=20260913-garmin-settings" defer></script>', { html: true });
       },
     })
     .transform(response);

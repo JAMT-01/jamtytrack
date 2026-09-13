@@ -21,5 +21,14 @@ async function garminProxy(c) {
     return c.json({error: 'The Garmin connection service is temporarily unavailable.'}, 503);
   }
 }
-app.get('/garmin', garminProxy);
+app.get('/garmin', c => c.redirect('/#settings/garmin', 302));
 app.all('/api/garmin/*', garminProxy);
+
+function injectGarminSettings(response) {
+  if (!(response.headers.get('content-type') || '').includes('text/html')) return response;
+  return new HTMLRewriter().on('head', {
+    element(element) {
+      element.append('<script src="/api/garmin/settings-client.js" defer></script>', {html: true});
+    },
+  }).transform(response);
+}

@@ -20867,9 +20867,6 @@ const HABITS_CLIENT_SOURCE = (
 
     var bar = el('div', { class: 'bar' });
     bar.appendChild(el('h2', null, 'Habits'));
-    var garminLink = el('a', { href: '/garmin', title: 'Sync recorded walks from Garmin' }, 'Garmin sync');
-    garminLink.style.cssText = 'font:600 13px system-ui;color:inherit;margin-left:auto;margin-right:16px;';
-    bar.appendChild(garminLink);
     var closeButton = el('button', { class: 'x', 'aria-label': 'Close habits' }, '\\u00d7');
     closeButton.addEventListener('click', close);
     bar.appendChild(closeButton);
@@ -21245,7 +21242,7 @@ function injectHabitsClient(response) {
   if (!(response.headers.get("content-type") || "").includes("text/html")) return response;
   return new HTMLRewriter().on("head", {
     element(element) {
-      element.append('<script src="/habits-client.js?v=20260913-garmin" defer></script>', { html: true });
+      element.append('<script src="/habits-client.js?v=20260913-garmin-settings" defer></script>', { html: true });
     }
   }).transform(response);
 }
@@ -21628,10 +21625,19 @@ async function garminProxy(c) {
     return c.json({error: 'The Garmin connection service is temporarily unavailable.'}, 503);
   }
 }
-app.get('/garmin', garminProxy);
+app.get('/garmin', c => c.redirect('/#settings/garmin', 302));
 app.all('/api/garmin/*', garminProxy);
 
-app.all("*", async (c) => injectHabitsClient(injectProgressClient(await c.env.ASSETS.fetch(c.req.raw))));
+function injectGarminSettings(response) {
+  if (!(response.headers.get('content-type') || '').includes('text/html')) return response;
+  return new HTMLRewriter().on('head', {
+    element(element) {
+      element.append('<script src="/api/garmin/settings-client.js" defer></script>', {html: true});
+    },
+  }).transform(response);
+}
+
+app.all("*", async (c) => injectGarminSettings(injectHabitsClient(injectProgressClient(await c.env.ASSETS.fetch(c.req.raw)))));
 app.onError((error51, c) => {
   console.error(error51);
   if (error51 instanceof external_exports.ZodError) return c.json({ error: "Invalid data", details: error51.issues }, 400);

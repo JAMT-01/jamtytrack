@@ -19,6 +19,10 @@ test('signed-in requests use the service binding without forwarding app cookies'
  assert.equal(response.status,200);assert.equal(new URL(f.calls[0].url).pathname,'/api/status');
  assert.equal(f.calls[0].headers.get('cookie'),null);assert.equal(f.calls[0].headers.get('authorization'),'Bearer service-test-only');
 });
+test('old Garmin bookmarks open the connection card in Settings',async()=>{
+ const f=await fixture();const response=await f.fetch('/garmin',{headers:{cookie:f.cookie}});
+ assert.equal(response.status,302);assert.equal(response.headers.get('location'),'/#settings/garmin');assert.equal(f.calls.length,0);
+});
 test('cross-origin changes are rejected and same-origin login requests reach the connector',async()=>{
  const f=await fixture();const init={method:'POST',headers:{cookie:f.cookie,origin:'https://untrusted.example','content-type':'application/json'},body:'{}'};
  assert.equal((await f.fetch('/api/garmin/login',init)).status,403);assert.equal(f.calls.length,0);

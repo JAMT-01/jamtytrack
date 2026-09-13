@@ -3,6 +3,7 @@ import type {Pending, Session} from './garmin.ts';
 import {authorized, seal, unseal} from './secrets.ts';
 import {allowAttempt, config, connection, locked, reconcile, syncStart} from './store.ts';
 import {PAGE, CLIENT} from './page.ts';
+import {SETTINGS_CLIENT} from './settings.ts';
 const headers = {'cache-control':'no-store', 'x-content-type-options':'nosniff', 'referrer-policy':'no-referrer'};
 function json(value: unknown, status=200) {return Response.json(value,{status,headers});}
 async function fail(env: Env, error: unknown): Promise<GarminError> {
@@ -75,6 +76,7 @@ export default {
         if(path==='/')return new Response(PAGE,{headers:{...headers,'content-type':'text/html; charset=utf-8',
           'content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"}});
         if(path==='/api/client.js')return new Response(CLIENT,{headers:{...headers,'content-type':'text/javascript; charset=utf-8'}});
+        if(path==='/api/settings-client.js')return new Response(SETTINGS_CLIENT,{headers:{...headers,'content-type':'text/javascript; charset=utf-8'}});
         if(path==='/api/status')return json(await status(env));
         if(path==='/api/probe')return json(await new GarminClient().probe());
         return json({error:'Not found'},404);
