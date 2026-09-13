@@ -9,8 +9,9 @@ async function fail(env: Env, error: unknown): Promise<GarminError> {
   const safe = error instanceof GarminError ? error : new GarminError('internal', 'The Garmin service could not finish this request. Your sign-in details were not logged.');
   const pause = ['reconnect','blocked','challenge','token_exchange'].includes(safe.code);
   const cooldown = safe.code==='rate_limited' ? Date.now()+3_600_000 : 0;
+  if(cooldown)safe.retryAt=cooldown;
   if (!['busy','cooldown','login_limit'].includes(safe.code)) {
-    await env.DB.prepare('UPDATE garmin_connection SET last_error=?,error_code=?,cooldown_until=?,enabled=CASE WHEN ? THEN 0 ELSE enabled END WHERE id=1')
+    await env.DB.prepare('UPDATE garmin_connection SET last_error=?,error_code=?,cooldown_until=MAX(cooldown_until,?),enabled=CASE WHEN ? THEN 0 ELSE enabled END WHERE id=1')
       .bind(safe.message,safe.code,cooldown,pause?1:0).run();
   }
   console.log(JSON.stringify({event:'garmin_error',code:safe.code}));
@@ -105,7 +106,7 @@ export default {
         }else await env.DB.prepare('UPDATE garmin_connection SET pending_cipher=NULL,last_error=NULL,error_code=NULL WHERE id=1').run();
       });
       return json(await status(env));
-    }catch(error){const safe=await fail(env,error);return json({error:safe.message,code:safe.code},safe.status);}
+    }catch(error){const safe=await fail(env,error);return json({error:safe.message,code:safe.code,retryAt:safe.retryAt},safe.status);}
   },
   async scheduled(_event,env){
     try{const row=await connection(env.DB);if(!row.enabled||row.cooldown_until>Date.now())return;

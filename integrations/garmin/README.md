@@ -47,7 +47,13 @@ The first sign-in verifies authenticated activity access before saving the
 session and enabling the scheduled sync. Passwords are never stored. MFA state
 expires after ten minutes; sessions/MFA cookies are AES-GCM encrypted with a
 Worker secret held outside D1. Authentication attempts are limited to five per
-15 minutes, and Garmin rate limits impose a one-hour cooldown. Logs contain only
+15 minutes. After a Garmin rate-limit response, Jamtytrack imposes a one-hour
+cooldown as a local safeguard; this is not a Garmin-provided retry deadline or a
+guarantee that waiting will resolve the rejection. The connection page displays
+the deadline and a countdown separately from request errors, and disables sign-in,
+verification, and manual sync until the pause ends. No credentials are retried
+automatically. Error responses carry the deadline even if the next status read
+fails, and unrelated input errors cannot clear an active cooldown. Logs contain only
 fixed error codes and counts, never passwords, tokens, upstream responses, or
 activity titles/routes.
 
@@ -73,19 +79,26 @@ activity titles/routes.
 
 ## Verification on 2026-09-13
 
-12 connector tests cover distance thresholds, timezone boundaries, duplicates,
+17 connector tests cover distance thresholds, timezone boundaries, duplicates,
 updates/deletions, manual overrides, transaction rollback, concurrency, encrypted
-storage, MFA, and rejected requests. The main bundle has seven passing login and
+storage, MFA, rejected requests, and cooldown behavior in the API and browser
+client (including failed status refreshes and timer expiry without requests).
+The main bundle has seven passing login and
 gateway tests covering authentication and cross-origin requests.
 
 Cloudflare deployment was tested directly: the connection status endpoint returns
 200, requests without the service credential return 401, and Garmin's sign-in
-endpoint returns 200 from the Worker. The authenticated Garmin activity test still
-requires the account owner to complete the connection page. The cron is deployed
-but remains inactive until that test succeeds.
+public sign-in page returns 200 from the Worker. That public probe did not prove
+authenticated access. The owner's first sign-in attempt at 18:25:40 UTC returned
+a Garmin rate-limit response. No session was saved and no activities were imported.
+The local cooldown expires at 19:25:40 UTC (16:25:40 in Buenos Aires). The precise
+upstream login stage and reason for the rejection were not captured. Authenticated
+activity access remains unverified; the cron is deployed but inactive until
+connection succeeds.
 
 Main app version at setup: `1246069c-0e3a-454e-a058-535324d5cca3`.
 Connector version at setup: `eed6fea5-d9de-429b-b3c5-a71ad6fba671`.
+Connector version with cooldown fix: `15e98662-815c-4456-b54f-266da0c6c67e`.
 The existing 50 meals and nine habit entries were unchanged before connection.
 
 The main app is the recovered `master` artifact. Do not deploy the separate

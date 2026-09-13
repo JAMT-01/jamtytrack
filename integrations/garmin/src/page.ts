@@ -4,6 +4,7 @@ export const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 </style><script src="/api/garmin/client.js" defer></script></head><body><main><header><a href="/">← Jamtytrack</a><span>Walking habit</span></header>
 <h1>Connect Garmin</h1><p>Your recorded walks can complete your daily walking habit automatically.</p>
 <div id="message" class="status" role="status" aria-live="polite">Loading connection status…</div>
+<div id="cooldown" class="status" hidden><strong id="retry-time"></strong><div id="retry-countdown" role="timer"></div><div class="muted">This pause is a Jamtytrack safeguard. Garmin may still reject the next attempt.</div></div>
 <section id="summary" hidden><h2 id="habit-name">Walk 10 km</h2><div id="distance"></div><p id="sync-status"></p><div id="actions"><button id="sync" class="secondary">Sync now</button><button id="disconnect" class="danger">Disconnect</button></div><h2 style="margin-top:24px">Recent imported walks</h2><ul id="recent"></ul></section>
 <section id="signin" hidden><h2>Sign in to Garmin Connect</h2><p class="muted">Your password is used for sign-in and is never saved. Only the resulting session is stored, encrypted, in your Cloudflare account.</p><form id="login-form"><label for="email">Garmin email</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="254"><label for="password">Garmin password</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="1024"><button type="submit">Connect and sync walks</button></form></section>
 <section id="verification" hidden><h2>Verify your Garmin sign-in</h2><p>Enter the verification code from Garmin.</p><form id="mfa-form"><label for="code">Verification code</label><input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" required maxlength="12"><button type="submit">Verify and connect</button></form><button id="restart" class="secondary" style="margin-top:12px">Start again</button></section>
@@ -11,13 +12,30 @@ export const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <footer>Connection details are sent only to Garmin and your own Jamtytrack services. Meal and photo data are not sent to Garmin.</footer></main></body></html>`;
 
 export const CLIENT = `'use strict';
-const byId=id=>document.getElementById(id);let busy=false;let canSync=false;
+const byId=id=>document.getElementById(id);let busy=false;let connected=false;let cooldownUntil=0;
 function message(text,error=false){byId('message').textContent=text;byId('message').classList.toggle('error',error);}
-function buttons(){document.querySelectorAll('button').forEach(b=>b.disabled=busy);byId('sync').disabled=busy||!canSync;}
+function paused(){return cooldownUntil>Date.now();}
+function buttons(){
+ document.querySelectorAll('button').forEach(b=>b.disabled=busy);
+ document.querySelectorAll('button[type="submit"]').forEach(b=>b.disabled=busy||paused());
+ byId('sync').disabled=busy||!connected||paused();
+}
+function cooldown(){
+ byId('cooldown').hidden=!cooldownUntil;
+ if(cooldownUntil){
+  const seconds=Math.max(0,Math.ceil((cooldownUntil-Date.now())/1000));
+  byId('retry-time').textContent=seconds?'Try again after '+new Date(cooldownUntil).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit',timeZoneName:'short'})+'.':'The retry pause has ended.';
+  byId('retry-countdown').textContent=seconds?Math.floor(seconds/60)+'m '+(seconds%60)+'s remaining.':'You can try again when ready. This page does not retry sign-in automatically.';
+ }
+ buttons();
+}
 async function api(path,body){
  const response=await fetch('/api/garmin/'+path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});
  let data;try{data=await response.json();}catch{throw new Error('The connection service did not respond. Please reload.');}
- if(!response.ok)throw new Error(data.error||'The request could not be completed.');return data;
+ if(!response.ok){
+  if(Number.isFinite(data.retryAt)&&data.retryAt>Date.now()){cooldownUntil=data.retryAt;cooldown();}
+  throw new Error(data.error||'The request could not be completed.');
+ }return data;
 }
 async function refresh(){
  const state=await api('status');
@@ -26,11 +44,11 @@ async function refresh(){
  byId('habit-name').textContent=state.habitName;
  byId('distance').textContent=state.todayKm.toFixed(2)+' / '+state.targetKm+' km';
  byId('sync-status').textContent=(state.connected?'Automatic sync is on. ':'Automatic sync is paused. ')+(state.lastSync?'Last synced '+new Date(state.lastSync).toLocaleString()+'.':'No successful sync yet.');
- canSync=state.connected&&state.cooldownUntil<=Date.now();buttons();
+ connected=state.connected;cooldownUntil=state.cooldownUntil;cooldown();
  byId('recent').replaceChildren();
  for(const walk of state.recent){const li=document.createElement('li');li.textContent=walk.day+' · '+(walk.distanceMeters/1000).toFixed(2)+' km';byId('recent').append(li);}
  if(!state.recent.length){const li=document.createElement('li');li.textContent='No walks imported yet.';byId('recent').append(li);}
- if(state.error){message(state.error+(state.cooldownUntil>Date.now()?' Try again after '+new Date(state.cooldownUntil).toLocaleTimeString()+'.':''),true);}
+ if(state.error){message(state.error,true);}
  else if(state.pendingMfa){message('Garmin is waiting for your verification code.');}
  else if(state.connected){message('Garmin is connected. Recorded walks will sync automatically.');}
  else{message('Sign in below to test the connection and start syncing.');}
@@ -41,11 +59,13 @@ async function run(action,text){
  finally{busy=false;buttons();}
 }
 byId('login-form').addEventListener('submit',event=>{event.preventDefault();
+ if(busy||paused()){cooldown();return;}
  const email=byId('email').value;const password=byId('password').value;byId('password').value='';
  run(()=>api('login',{email,password}),'Connecting to Garmin…');});
-byId('mfa-form').addEventListener('submit',event=>{event.preventDefault();const code=byId('code').value;byId('code').value='';run(()=>api('verify',{code}),'Verifying your sign-in…');});
-byId('sync').addEventListener('click',()=>run(()=>api('sync',{}),'Checking your recorded walks…'));
+byId('mfa-form').addEventListener('submit',event=>{event.preventDefault();if(busy||paused()){cooldown();return;}const code=byId('code').value;byId('code').value='';run(()=>api('verify',{code}),'Verifying your sign-in…');});
+byId('sync').addEventListener('click',()=>{if(!paused())run(()=>api('sync',{}),'Checking your recorded walks…');});
 byId('disconnect').addEventListener('click',()=>run(()=>api('disconnect',{}),'Disconnecting Garmin…'));
 byId('restart').addEventListener('click',()=>run(()=>api('cancel',{}),'Resetting sign-in…'));
 refresh().catch(error=>message(error.message,true));
+setInterval(cooldown,1000);
 `;

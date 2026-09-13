@@ -21,7 +21,7 @@ export type Session = {accessToken: string; refreshToken: string; clientId: stri
 export type Pending = {cookies: Record<string, string>; method: string; expiresAt: number};
 export type Walk = {id: string; startedAt: string; day: string; distanceMeters: number};
 export class GarminError extends Error {
-  constructor(public code: string, message: string, public status = 502) {super(message);}
+  constructor(public code: string, message: string, public status = 502, public retryAt?: number) {super(message);}
 }
 export function object(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -46,7 +46,7 @@ export class GarminClient {
     try {response = await send(url, {...init, redirect: 'manual', signal: AbortSignal.timeout(25_000)});}
     catch {throw new GarminError('network', 'Garmin could not be reached. Try again later.');}
     // Never include upstream bodies, headers, tickets, or URLs in errors/logs.
-    if (response.status === 429) {await response.body?.cancel(); throw new GarminError('rate_limited', 'Garmin asked us to wait. Sync is paused for one hour.', 429);}
+    if (response.status === 429) {await response.body?.cancel(); throw new GarminError('rate_limited', 'Garmin returned a rate-limit response. Jamtytrack has paused retries for one hour.', 429);}
     if (response.status === 403) {await response.body?.cancel(); throw new GarminError('blocked', 'Garmin rejected this connection from Cloudflare. Automatic sync is not connected.', 502);}
     if (response.status === 401) {await response.body?.cancel(); throw new GarminError('reconnect', 'Garmin needs you to reconnect.', 401);}
     if (!response.ok) {await response.body?.cancel(); throw new GarminError('upstream', `Garmin returned HTTP ${response.status}. Try again later.`);}
@@ -74,7 +74,7 @@ export class GarminClient {
     if (result === 'MFA_REQUIRED') return {pending: {cookies, method: String(object(row.customerMfaInfo).mfaLastMethodUsed || 'email'), expiresAt: Date.now() + 600_000}};
     if (result === 'INVALID_USERNAME_PASSWORD') throw new GarminError('credentials', 'Garmin did not accept that email or password.', 400);
     if (result === 'CAPTCHA_REQUIRED') throw new GarminError('challenge', 'Garmin requires a browser challenge. Sign-in from this Worker is unavailable.');
-    if (String(object(row.error)['status-code']) === '429') throw new GarminError('rate_limited', 'Garmin asked us to wait. Sync is paused for one hour.', 429);
+    if (String(object(row.error)['status-code']) === '429') throw new GarminError('rate_limited', 'Garmin returned a rate-limit response. Jamtytrack has paused retries for one hour.', 429);
     if (result !== 'SUCCESSFUL' || typeof row.serviceTicketId !== 'string') throw new GarminError('authentication', 'Garmin could not complete sign-in. Check your account or verification code.', 400);
     const exchanged = await this.request(TOKEN, {method: 'POST', headers: {...API_HEADERS,
       'Authorization': 'Basic ' + btoa(CLIENT + ':'), 'Content-Type': 'application/x-www-form-urlencoded'},

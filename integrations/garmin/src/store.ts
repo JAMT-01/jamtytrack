@@ -31,7 +31,7 @@ export async function locked<T>(db: D1Database, action: () => Promise<T>): Promi
 }
 export async function allowAttempt(db: D1Database, authentication: boolean) {
   const row = await connection(db); const now = Date.now();
-  if (row.cooldown_until > now) throw new GarminError('cooldown', 'Garmin sync is paused. Please try again after the cooldown shown below.', 429);
+  if (row.cooldown_until > now) throw new GarminError('cooldown', 'Jamtytrack is waiting before contacting Garmin again.', 429, row.cooldown_until);
   if (authentication) {
     const recent = row.auth_window > now - 900_000;
     if (recent && row.auth_count >= 5) throw new GarminError('login_limit', 'Five sign-in attempts have been made. Wait 15 minutes before trying again.', 429);

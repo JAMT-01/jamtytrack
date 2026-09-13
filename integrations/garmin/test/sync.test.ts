@@ -4,9 +4,10 @@ import {readFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {Script} from 'node:vm';
 import {GarminClient, normalizeWalks} from '../src/garmin.ts';
-import {reconcile, locked} from '../src/store.ts';
+import {reconcile, locked, allowAttempt} from '../src/store.ts';
 import {seal, unseal, authorized} from '../src/secrets.ts';
 import {CLIENT} from '../src/page.ts';
+import worker from '../src/index.ts';
 
 const day='2026-09-13';const timezone='America/Buenos_Aires';
 function activity(id:number,meters:number,time='2026-09-13 15:00:00',type='walking'){
@@ -70,6 +71,25 @@ test('Garmin rejection stops immediately without exposing credentials',async()=>
  let calls=0;const client=new GarminClient(async()=>{calls++;return new Response('sensitive upstream content',{status:429});});
  await assert.rejects(()=>client.login('test@example.com','private-password'),error=>error.code==='rate_limited'&&!error.message.includes('sensitive'));
  assert.equal(calls,1);
+});
+test('the server cooldown preserves its deadline and blocks further authentication attempts',async()=>{
+ const f=fixture();const deadline=Date.now()+3_600_000;
+ f.sqlite.prepare('UPDATE garmin_connection SET cooldown_until=?,auth_count=1').run(deadline);
+ await assert.rejects(()=>allowAttempt(f.db,true),error=>error.code==='cooldown'&&error.retryAt===deadline);
+ await assert.rejects(()=>allowAttempt(f.db,false),error=>error.code==='cooldown'&&error.retryAt===deadline);
+ const row=f.sqlite.prepare('SELECT cooldown_until,auth_count FROM garmin_connection').get();
+ assert.equal(row.auth_count,1);assert.equal(row.cooldown_until,deadline);
+});
+test('API errors report the existing retry deadline and invalid input cannot reset it',async()=>{
+ const f=fixture();const deadline=Date.now()+3_600_000;const token='a'.repeat(64);
+ f.sqlite.prepare('UPDATE garmin_connection SET cooldown_until=?,auth_count=1').run(deadline);
+ const post=(body:unknown)=>worker.fetch(new Request('https://garmin.internal/api/login',{
+  method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(body),
+ }),{DB:f.db,GARMIN_SYNC_TOKEN:token},{});
+ const paused=await post({email:'test@example.com',password:'test-password'});
+ assert.equal(paused.status,429);assert.equal((await paused.json()).retryAt,deadline);
+ const invalid=await post({});assert.equal(invalid.status,400);
+ assert.equal(f.sqlite.prepare('SELECT cooldown_until FROM garmin_connection').get().cooldown_until,deadline);
 });
 test('MFA keeps cookies but no password; success yields a renewable session',async()=>{
  const responses=[Response.json({responseStatus:{type:'MFA_REQUIRED'},customerMfaInfo:{mfaLastMethodUsed:'email'}},{headers:{'set-cookie':'sso=test; Secure; HttpOnly'}}),
