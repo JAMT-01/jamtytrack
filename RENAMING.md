@@ -42,3 +42,31 @@ the SQLite backup API copies it, including committed WAL data, before use.
 An existing new diary is never overwritten; the old file is kept as a backup.
 The compatibility loader and its regression tests intentionally name the old
 file so existing checkouts cannot silently start an empty diary.
+
+## Repairs verified on 2026-09-13
+
+Opening or refreshing `/api/auth/login` now serves the login form directly.
+Previously, GET fell through to the app shell, whose protected scripts could
+not load before sign-in. Production version
+`16c16934-b1f6-4da4-8966-5004acb2ab30` includes that fix and the Habits repair.
+
+Habits now mounts only in `nav.side-nav` or `nav.bottom-nav`. The former geometry
+heuristic excluded the desktop sidebar and could select a meal row, clone its
+delete/repeat controls, and change its grid. Only the mobile navigation gets a
+fifth grid column. Switching layouts removes the stale item and restores its
+highlight and grid before placing the new button. The injected script URL is
+versioned so reloading picks up the repair immediately.
+
+Live checks confirmed 50 meals, 91 meal items, two habits, and nine habit entries,
+matching the pre-rename backup. The September 3 diary, saved-food list, a text
+meal estimate, and both habit histories loaded. No diary records were changed.
+The deployed DB, KV, assets, and secret bindings are unchanged. Four login route
+tests passed; browser checks covered desktop, mobile, and resizing with Habits
+open. `tools/stub-frontend.mjs` accepts `JAMTYTRACK_MEAL_FIXTURE=1` to reproduce
+the populated meal row when testing injected clients locally.
+
+The production `master` branch's `dist/worker.js` remains the recovered live
+artifact, including later habit history UI changes absent from older recovery
+sources. This repair updates its navigation helpers and `worker/habits-assets.ts`
+selectively. Do not regenerate the entire bundle from `recovered/BUNDLE-FULL.js`
+or deploy the `source` branch until all production features have been reconciled.
