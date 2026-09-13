@@ -1,5 +1,10 @@
 # tools
 
+Run the login-route regression tests with `node --test tools/login-route.test.mjs`.
+They exercise the deployable Worker bundle with local fixtures, covering a direct
+visit to `/api/auth/login`, a refresh after a wrong password, successful login
+and redirect, and the existing configuration and rate-limit protections.
+
 Diagnostics for the food-matching bug described in `../MATCHING-FIX.md`.
 
 Both scripts run the **verbatim** `clean`/`matchFood` from

@@ -18243,7 +18243,17 @@ app.use("*", async (c, next) => {
   }
   return c.html(loginPage({ configured: true }), 401);
 });
+// A bookmarked login URL or a refresh after submitting the form is a GET.
+// Serve the form here instead of falling through to the protected SPA assets.
+app.get("/api/auth/login", async (c) => {
+  c.header("cache-control", "no-store");
+  const password = c.env.APP_PASSWORD;
+  if (!password) return c.html(loginPage({ configured: false }), 503);
+  if (await hasValidSession(c.req.raw, password)) return c.redirect("/", 303);
+  return c.html(loginPage({ configured: true }));
+});
 app.post("/api/auth/login", async (c) => {
+  c.header("cache-control", "no-store");
   const password = c.env.APP_PASSWORD;
   if (!password) return c.html(loginPage({ configured: false }), 503);
   const ip = clientIp(c);

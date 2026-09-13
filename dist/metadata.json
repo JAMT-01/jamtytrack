@@ -26,9 +26,10 @@
       "type": "assets"
     },
     {
+      "database_id": "4fa3290f-cf68-410a-840e-8fb3a22561c2",
+      "id": "4fa3290f-cf68-410a-840e-8fb3a22561c2",
       "name": "DB",
-      "type": "d1",
-      "id": "4fa3290f-cf68-410a-840e-8fb3a22561c2"
+      "type": "d1"
     },
     {
       "name": "OPENROUTER_API_KEY",
@@ -45,6 +46,6 @@
     }
   ],
   "annotations": {
-    "workers/message": "Rename Jamtytrack throughout; retain the current live app and assets"
+    "workers/message": "Fix blank login page when opening or refreshing /api/auth/login"
   }
 }
