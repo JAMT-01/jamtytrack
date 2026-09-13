@@ -20805,6 +20805,7 @@ const HABITS_CLIENT_SOURCE = (
     }
     nav.style.setProperty('--nav-index', String(index));
     item.classList.add('active');
+    item.setAttribute('aria-expanded', 'true');
   }
 
   function releaseNavHighlight() {
@@ -20905,78 +20906,15 @@ const HABITS_CLIENT_SOURCE = (
     'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
     '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
 
-  /*
-   * Find the real tab bar.
-   *
-   * Scored rather than selected, because the app's markup is not knowable from
-   * here. Two rules below exist because the first version of this got it wrong
-   * against the actual app, which lays out its bar as:
-   *
-   *   <div class="mobile-bar">            <- fixed, bottom, wraps everything
-   *     <nav class="bottom-nav"> ...4 tabs... </nav>
-   *     <button class="scan-fab">         <- capture, deliberately NOT a tab
-   *   </div>
-   *
-   * Scoring by control count alone put '.mobile-bar' (6 controls, fixed, low)
-   * above '.bottom-nav' (4 controls, static) \u2014 so the launcher was appended
-   * beside the nav as a second capture button, squashing the bar.
-   */
+  /* Use the app's navigation elements. A meal row also has several buttons
+     near the bottom of the screen, so geometry cannot identify navigation.
+     Desktop's vertical sidebar is narrower and taller than the mobile bar. */
   function findNav() {
-    /* Already placed? Then the bar is whatever currently holds it. Exact, and
-       cheaper than re-scoring the document. */
-    var placed = document.querySelector('[' + NAV_FLAG + ']');
-    if (placed && placed.parentElement) return placed.parentElement;
-
-    var candidates = document.querySelectorAll('nav, [role="tablist"], footer, div, ul');
-    var floor = Math.min(window.innerWidth * 0.5, 280);
-    var scored = [];
-
-    for (var i = 0; i < candidates.length && i < 400; i++) {
-      var node = candidates[i];
-      var rect = node.getBoundingClientRect();
-      if (rect.width < floor || rect.height < 34 || rect.height > 120) continue;
-
-      var controls = node.querySelectorAll('a, button, [role="tab"]');
-      if (controls.length < 2) continue;
-
-      var position = getComputedStyle(node).position;
-      var isRealNav = node.tagName === 'NAV' || node.getAttribute('role') === 'tablist';
-      var pinned = position === 'fixed' || position === 'sticky';
-      var anchoredLow = rect.top > window.innerHeight * 0.6;
-
-      /*
-       * Hard gate, not just a score. "Wide, short, several controls" also
-       * describes a date strip, a segmented filter, a toolbar \u2014 and on the wide
-       * layout it matched the app's week picker, putting a Habits button inside
-       * the date selector. A navigation bar is a real <nav>, or it is pinned to
-       * the viewport, or it sits along the bottom. Anything else is not one.
-       */
-      if (!isRealNav && !pinned && !anchoredLow) continue;
-
-      /* Capped: a wrapper that sweeps up extra controls must not out-score the
-         real bar on sheer count. */
-      var score = Math.min(controls.length, 8);
-      if (pinned) score += 8;
-      if (anchoredLow) score += 6;
-      /* A <nav>/tablist IS the bar; a div that merely contains one is its
-         layout wrapper. Weighted heavily enough to settle exactly that case. */
-      if (isRealNav) score += 14;
-
-      scored.push({ node: node, score: score });
+    var candidates = document.querySelectorAll('nav.side-nav, nav.bottom-nav');
+    for (var i = 0; i < candidates.length; i++) {
+      if (isShown(candidates[i]) && navCells(candidates[i]).length >= 2) return candidates[i];
     }
-
-    /* Drop any candidate that contains another candidate \u2014 the inner element is
-       the bar, the outer one is the wrapper around it. */
-    var best = null;
-    for (var j = 0; j < scored.length; j++) {
-      var contains = false;
-      for (var k = 0; k < scored.length; k++) {
-        if (k !== j && scored[j].node.contains(scored[k].node)) { contains = true; break; }
-      }
-      if (contains) continue;
-      if (!best || scored[j].score > best.score) best = scored[j];
-    }
-    return best ? best.node : null;
+    return null;
   }
 
   /* Children that actually occupy a cell. An absolutely-positioned child is a
@@ -20984,8 +20922,8 @@ const HABITS_CLIENT_SOURCE = (
      counted as a tab, cloned as a template, or laid out as a grid item. */
   function navCells(nav) {
     return [].slice.call(nav.children).filter(function (node) {
-      return node.nodeType === 1 && getComputedStyle(node).position !== 'absolute' &&
-        node.getBoundingClientRect().height > 0;
+      return node.nodeType === 1 && node.matches('button, a, [role="tab"]') &&
+        getComputedStyle(node).position !== 'absolute' && isShown(node);
     });
   }
 
@@ -21006,6 +20944,8 @@ const HABITS_CLIENT_SOURCE = (
 
     var item = siblings[siblings.length - 1].cloneNode(true);
     item.setAttribute(NAV_FLAG, '1');
+    if (item.tagName === 'BUTTON') item.setAttribute('type', 'button');
+    item.setAttribute('aria-expanded', 'false');
 
     item.removeAttribute('aria-current');
     item.removeAttribute('aria-selected');
@@ -21082,6 +21022,8 @@ const HABITS_CLIENT_SOURCE = (
    * any absolutely-positioned highlight resized to match the new track.
    */
   function fitNav(nav) {
+    // Only the horizontal mobile bar needs another grid column.
+    if (!nav.matches('nav.bottom-nav')) return;
     var style = getComputedStyle(nav);
     var count = navCells(nav).length;
     if (!count) return;
@@ -21129,23 +21071,32 @@ const HABITS_CLIENT_SOURCE = (
     document.head.appendChild(flexStyle);
   }
 
-  /* Present AND actually on screen. A fixed element has no offsetParent, hence
-     the second test. */
+  /* Hidden responsive bars have no layout box, including their fixed children. */
   function isShown(node) {
-    return Boolean(node.offsetParent) || getComputedStyle(node).position === 'fixed';
+    var rect = node.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 && getComputedStyle(node).visibility !== 'hidden';
   }
 
   function ensureNavItem() {
+    var nav = findNav();
     var existing = document.querySelector('[' + NAV_FLAG + ']');
     if (existing) {
-      if (isShown(existing)) return true;
+      if (existing.parentElement === nav && isShown(existing)) return true;
       /* The bar it lives in is hidden \u2014 the app swaps its bottom bar for a
          sidebar above 760px. Drop the stale item so a fresh placement (or the
          floating fallback) can take over. */
+      releaseNavHighlight();
+      var previousNav = existing.parentElement;
       existing.remove();
+      if (previousNav) {
+        previousNav.removeAttribute('data-jamtytrack-grid');
+        previousNav.removeAttribute('data-jamtytrack-fit');
+        navOverlays(previousNav).forEach(function (overlay) {
+          overlay.removeAttribute('data-jamtytrack-navpill');
+        });
+      }
     }
 
-    var nav = findNav();
     if (!nav) return false;
     var item = buildNavItem(nav);
     if (!item) return false;
@@ -21232,7 +21183,10 @@ const HABITS_CLIENT_SOURCE = (
        * here is idempotent: claimNavHighlight() keeps the first saved values, so
        * close() still restores the state the app actually had.
        */
-      if (isOpen()) claimNavHighlight();
+      if (isOpen()) {
+        claimNavHighlight();
+        applyReserve();
+      }
     }
 
     new MutationObserver(function () {
@@ -21286,7 +21240,7 @@ function injectHabitsClient(response) {
   if (!(response.headers.get("content-type") || "").includes("text/html")) return response;
   return new HTMLRewriter().on("head", {
     element(element) {
-      element.append('<script src="/habits-client.js" defer></script>', { html: true });
+      element.append('<script src="/habits-client.js?v=20260913-nav" defer></script>', { html: true });
     }
   }).transform(response);
 }

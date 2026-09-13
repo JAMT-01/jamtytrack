@@ -22,6 +22,12 @@ const DIST = process.env.JAMTYTRACK_DIST || fileURLToPath(new URL('../../jamtytr
 const CLIENT = process.argv[3]; // optional path to progress-client.js
 const HABITS = process.argv[4]; // optional path to habits-client.js
 const PORT = Number(process.argv[2] || 8141);
+// Exercise the meal-row navigation regression against the actual React build.
+const MEALS = process.env.JAMTYTRACK_MEAL_FIXTURE === '1' ? [{
+  id: 'navigation-regression-meal', title: 'Navigation test meal',
+  loggedAt: '2026-08-29T18:00:00.000Z', mealType: 'Lunch', notes: '', source: 'manual',
+  items: [{ name: 'Rice', grams: 100, calories: 130, protein: 3, carbs: 28, fat: 0, fiber: 1 }],
+}] : [];
 
 const REAL_PHOTOS = [
   { id: 'd8696df7-cbe8-4cc7-abdd-dae8499dc811', takenAt: '2026-08-19T12:00:00.000Z', takenDate: '2026-08-19',
@@ -125,7 +131,7 @@ createServer(async (req, res) => {
     // app reads settings.calorieTarget straight off it.
     if (path === '/api/dashboard') return json(res, {
       date: '2026-08-29', settings: SETTINGS,
-      totals: { calories: 0, protein: 0, carbs: 0, fiber: 0, fat: 0 }, meals: [] });
+      totals: MEALS.length ? MEALS[0].items[0] : { calories: 0, protein: 0, carbs: 0, fiber: 0, fat: 0 }, meals: MEALS });
     if (path === '/api/progress/state') return json(res, {
       unlocked, unlockMinutes: 15, expiresAt: unlocked ? Date.now() + 900000 : null,
       separateSecret: process.env.JAMTYTRACK_SEPARATE === '1', encryption: { configured: true, salt: 'c2FsdHNhbHRzYWx0c2FsdA==' } });

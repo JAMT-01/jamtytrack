@@ -46,6 +46,6 @@
     }
   ],
   "annotations": {
-    "workers/message": "Fix blank login page when opening or refreshing /api/auth/login"
+    "workers/message": "Restore Habits navigation on desktop and preserve meal row controls; support mobile layout switching"
   }
 }
