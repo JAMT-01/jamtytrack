@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "macroflow",
+  "name": "jamtytrack",
   "main": "worker/index.ts",
   "compatibility_date": "2026-08-13",
   // nodejs_compat gives the Worker a native Buffer, used to base64 the meal
@@ -8,7 +8,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
 
-  // No macroflow.<subdomain>.workers.dev route. A hostname-level gate such as
+  // No jamtytrack.<subdomain>.workers.dev route. A hostname-level gate such as
   // Cloudflare Access protects the custom domain only, so a live workers.dev
   // URL would be an unauthenticated way around it.
   "workers_dev": false,
@@ -26,8 +26,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "macroflow",
-      "database_id": "978a69cc-f981-4fa8-a136-c67b556bb643",
+      "database_name": "jamtytrack",
+      "database_id": "4fa3290f-cf68-410a-840e-8fb3a22561c2",
       "migrations_dir": "migrations"
     }
   ],

@@ -9,7 +9,7 @@ Everything an engineer needs to take this over with no prior context. The [READM
 Jamtytrack is a single-user macro tracker for one person in Argentina. Photograph a meal (or describe it in words), a vision model estimates the macros, you edit and save. It also tracks weight, body progress photos, and 30-day trends.
 
 - **Live:** `https://jamtytrack.montagnertudor.org`
-- **The Cloudflare resources are still named `macroflow`.** The product was renamed; the Worker and the D1 database were not, and that is deliberate. Cloudflare cannot rename either in place: renaming a Worker creates a *new* one that starts with no secrets, and D1 has no rename command at all, so it would mean copying a live database that holds the photo encryption keys. Neither risk buys anything, because the names appear only in the dashboard and in `wrangler` commands. **Every `wrangler` command below says `macroflow` on purpose.**
+- **The repository, Worker and active D1 database are named `jamtytrack`.** The Worker was renamed in place using its immutable ID, preserving its secrets, domain and schedules. D1 required a verified copy to a new database; both branch configurations point to it. The original database is retained only for rollback. See [RENAMING.md](RENAMING.md).
 - **Runs entirely on Cloudflare's free tier**: Worker + D1 + KV, no origin server
 - **Single user.** There is no user table, no tenancy, no sharing. One passphrase gates the app; a second one gates the body photos.
 - **Not a medical device.** Every number is an estimate and the UI says so.
@@ -62,7 +62,7 @@ Setting or rotating any of them is §9 — and mind the versions trap there.
 To inspect production data without production credentials in hand:
 
 ```bash
-npx wrangler d1 execute macroflow --remote --command "SELECT COUNT(*) FROM meals;"
+npx wrangler d1 execute jamtytrack --remote --command "SELECT COUNT(*) FROM meals;"
 ```
 
 That authenticates through `wrangler login` (your own Cloudflare account access), which is the right boundary: account access is auditable and revocable, a pasted passphrase is neither.
@@ -89,7 +89,7 @@ One Worker serves everything. There is no separate API host and no origin.
       +-- /progress-photos/*    body photos -> KV, needs a second unlock
       +-- everything else       -> env.ASSETS (the built SPA)
       |
-      +-- D1  "macroflow"   diary, settings, secrets, rate limits
+      +-- D1  "jamtytrack"   diary, settings, secrets, rate limits
       +-- KV  PHOTOS        all images
       +-- fetch()           OpenRouter (vision + refinement), Telegram
       +-- scheduled()       cron every minute, for reminders
@@ -149,7 +149,7 @@ The prompt, the Argentine meal rules, and the uncertainty maths are used by the 
 
 ## 4. Data model
 
-D1 database `macroflow` (SQLite). Every date-like decision is timezone-aware — see §7.
+D1 database `jamtytrack` (SQLite). Every date-like decision is timezone-aware — see §7.
 
 | table | purpose | notes |
 | --- | --- | --- |
@@ -226,9 +226,9 @@ Two independent gates. Both are HMAC-signed cookies with no server-side session 
 
 | | app session | photo unlock |
 | --- | --- | --- |
-| cookie | `mf_session` | `mf_photos` |
+| cookie | `jamtytrack_session` | `jamtytrack_photos` |
 | secret | `APP_PASSWORD` | `PHOTO_PASSPHRASE` (falls back to `APP_PASSWORD`) |
-| HMAC context | `::macroflow-session-v1` | `::macroflow-photos-v1` |
+| HMAC context | `::jamtytrack-session-v1` | `::jamtytrack-photos-v1` |
 | lifetime | 30 days | 3 minutes, and dropped when the browser closes |
 | gates | everything | `/api/progress*`, `/progress-photos/*` |
 
@@ -388,7 +388,7 @@ npx wrangler versions deploy PASTE_THE_PRINTED_ID@100% --yes
 
 The id and `@100%` are **one token with no space**. `wrangler secret list` shows secrets from the newest version, so a secret can look configured while the running code cannot see it. This caused three separate "it's still not working" incidents.
 
-**The dashboard — Workers & Pages → macroflow → Settings → Variables and Secrets — saves and deploys in one step and avoids all of it.**
+**The dashboard — Workers & Pages → jamtytrack → Settings → Variables and Secrets — saves and deploys in one step and avoids all of it.**
 
 ### Secrets
 
@@ -540,4 +540,4 @@ Why things are the way they are, so they do not get undone by accident.
 | change the diary UI | `src/screens/Today.tsx`, `src/components/LogModal.tsx` |
 | change the food catalogue | `shared/seed.ts`, then `pnpm d1:seed` and migrate |
 | add a table | new file in `migrations/`, then `pnpm d1:migrate` |
-| debug production | `pnpm tail`, then `wrangler d1 execute macroflow --remote` |
+| debug production | `pnpm tail`, then `wrangler d1 execute jamtytrack --remote` |

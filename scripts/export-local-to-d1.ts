@@ -5,7 +5,7 @@
  *   npx tsx scripts/export-local-to-d1.ts
  *
  * Produces:
- *   tmp/d1-import.sql          — run with `wrangler d1 execute macroflow --remote --file`
+ *   tmp/d1-import.sql          — run with `wrangler d1 execute jamtytrack --remote --file`
  *   tmp/kv-photos/upload.sh    — the `wrangler kv key put` calls for each photo
  *
  * Foods are skipped: they come from migrations/0002_seed_foods.sql. Benchmark
@@ -15,9 +15,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
+import { localDatabasePath } from "../server/local-database.js";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const db = new DatabaseSync(path.join(rootDir, "data", "macroflow.db"));
+const db = new DatabaseSync(await localDatabasePath(path.join(rootDir, "data")), { readOnly: true });
 const outputDir = path.join(rootDir, "tmp");
 fs.mkdirSync(outputDir, { recursive: true });
 

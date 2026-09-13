@@ -57,7 +57,7 @@ npx wrangler login
 **1. Create the database and the photo store.** Copy each id that gets printed into `wrangler.jsonc`, replacing the two `PLACEHOLDER_…` values.
 
 ```bash
-npx wrangler d1 create macroflow
+npx wrangler d1 create jamtytrack
 ```
 
 ```bash
@@ -98,7 +98,7 @@ npx wrangler versions secret put TELEGRAM_WEBHOOK_SECRET
 npx wrangler versions secret put PHOTO_PASSPHRASE
 ```
 
-The dashboard is a fine alternative: **Workers & Pages → macroflow → Settings → Variables and Secrets**, which deploys on save.
+The dashboard is a fine alternative: **Workers & Pages → jamtytrack → Settings → Variables and Secrets**, which deploys on save.
 
 **4. Build and deploy.**
 
@@ -112,14 +112,14 @@ pnpm deploy
 npx wrangler deployments list
 ```
 
-**6. Bring your existing diary across** (optional — skip for a fresh start). This reads `data/macroflow.db`, writes `tmp/d1-import.sql`, and generates one `npx wrangler kv key put` command per meal photo.
+**6. Bring your existing diary across** (optional — skip for a fresh start). This reads `data/jamtytrack.db`, writes `tmp/d1-import.sql`, and generates one `npx wrangler kv key put` command per meal photo.
 
 ```bash
 pnpm d1:export-local
 ```
 
 ```bash
-npx wrangler d1 execute macroflow --remote --file tmp/d1-import.sql
+npx wrangler d1 execute jamtytrack --remote --file tmp/d1-import.sql
 ```
 
 Then run the commands in `tmp/kv-photos/upload.sh` to push the photos into KV.
@@ -157,7 +157,7 @@ pnpm d1:migrate:local
 pnpm dev
 ```
 
-Vite serves the app at [http://localhost:5173](http://localhost:5173) with HMR and proxies `/api` to `wrangler dev` on port 8787. The local D1 and KV are emulated under `.wrangler/` — a throwaway copy, never your production data. `pnpm d1:export-local` plus `wrangler d1 execute macroflow --local --file tmp/d1-import.sql` fills it with realistic rows.
+Vite serves the app at [http://localhost:5173](http://localhost:5173) with HMR and proxies `/api` to `wrangler dev` on port 8787. The local D1 and KV are emulated under `.wrangler/` — a throwaway copy, never your production data. `pnpm d1:export-local` plus `wrangler d1 execute jamtytrack --local --file tmp/d1-import.sql` fills it with realistic rows.
 
 To watch production logs:
 
@@ -271,20 +271,20 @@ server/    local-only research tooling (SQLite): benchmark runner and pipeline t
 
 ## Accuracy research
 
-The product UI stays focused on logging. The weighed Nutrition5k benchmark, depth experiments, prompts, and results remain available internally in [docs/NUTRITION_VISION_RESEARCH.md](docs/NUTRITION_VISION_RESEARCH.md) and `data/benchmark/`. The lab is deliberately **not** deployed: it needs ~7 MB of dataset images and shells out to a local Python depth model, which Workers cannot run. It still runs locally against `data/macroflow.db` through `server/`.
+The product UI stays focused on logging. The weighed Nutrition5k benchmark, depth experiments, prompts, and results remain available internally in [docs/NUTRITION_VISION_RESEARCH.md](docs/NUTRITION_VISION_RESEARCH.md) and `data/benchmark/`. The lab is deliberately **not** deployed: it needs ~7 MB of dataset images and shells out to a local Python depth model, which Workers cannot run. It still runs locally against `data/jamtytrack.db` through `server/`.
 
 The production app uses one RGB photo, a known 25 cm plate diameter when its complete rim is visible and you did not switch the reference off, low model reasoning, personal recipe memories, and editable estimates. In the bundled three-plate smoke test, `google/gemini-3.6-flash` with the one-photo pipeline produced 43.1 kcal calorie MAE, 30.3 g mass MAE, and 4.8 g macro MAE at about $0.0047 per analysis. This sample is too small to claim general accuracy; use the displayed uncertainty range and confirm high-impact assumptions.
 
 ## Data and backup
 
-- Diary: D1 database `macroflow` (the Cloudflare resources kept their original name when the app was renamed — see ENGINEERING.md §1)
+- Diary: D1 database `jamtytrack` (see [RENAMING.md](RENAMING.md) for the migration and rollback notes)
 - Meal photos: KV namespace `PHOTOS`, keyed `uploads/<uuid>.jpg`
 - Downloadable backup: Settings → **Export all data**
 
 For an offline copy of the database:
 
 ```bash
-npx wrangler d1 export macroflow --remote --output backup.sql
+npx wrangler d1 export jamtytrack --remote --output backup.sql
 ```
 
 API keys are Worker secrets and are excluded from exports.

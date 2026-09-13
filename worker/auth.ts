@@ -9,8 +9,8 @@ import type { Env } from "./db.js";
  * because the signing key is derived from it.
  */
 
-const COOKIE = "mf_session";
-const UNLOCK_COOKIE = "mf_photos";
+const COOKIE = "jamtytrack_session";
+const UNLOCK_COOKIE = "jamtytrack_photos";
 const UNLOCK_MINUTES = 3;
 /*
  * A photo passphrase is often a short PIN, whose keyspace is small enough that
@@ -34,7 +34,7 @@ function bytesToBase64Url(bytes: ArrayBuffer) {
 async function signingKey(password: string) {
   return crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(`${password}::macroflow-session-v1`),
+    new TextEncoder().encode(`${password}::jamtytrack-session-v1`),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -100,7 +100,7 @@ export function verifyPassword(candidate: string, password: string) {
 async function signUnlock(password: string, payload: string) {
   const key = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(`${password}::macroflow-photos-v1`),
+    new TextEncoder().encode(`${password}::jamtytrack-photos-v1`),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]

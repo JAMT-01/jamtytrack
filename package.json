@@ -1,5 +1,5 @@
 {
-  "name": "jamtytrack-local",
+  "name": "jamtytrack",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,8 @@
     "check": "tsc --noEmit && tsc -p tsconfig.worker.json --noEmit",
     "test": "vitest run",
     "deploy": "pnpm build && wrangler deploy",
-    "d1:migrate": "wrangler d1 migrations apply macroflow --remote",
-    "d1:migrate:local": "wrangler d1 migrations apply macroflow --local",
+    "d1:migrate": "wrangler d1 migrations apply jamtytrack --remote",
+    "d1:migrate:local": "wrangler d1 migrations apply jamtytrack --local",
     "bootstrap": "node scripts/bootstrap-dev.mjs",
     "d1:seed": "tsx scripts/generate-seed-migration.ts",
     "d1:export-local": "tsx scripts/export-local-to-d1.ts",

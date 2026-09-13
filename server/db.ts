@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { seedFoods } from "../shared/seed.js";
+import { localDatabasePath } from "./local-database.js";
 
 const serverDir = path.dirname(fileURLToPath(import.meta.url));
 export const rootDir = path.resolve(serverDir, "..");
@@ -12,7 +13,7 @@ export const benchmarkDir = path.join(dataDir, "benchmark");
 fs.mkdirSync(uploadsDir, { recursive: true });
 fs.mkdirSync(benchmarkDir, { recursive: true });
 
-export const db = new DatabaseSync(path.join(dataDir, "macroflow.db"));
+export const db = new DatabaseSync(await localDatabasePath(dataDir));
 db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
 
 db.exec(`

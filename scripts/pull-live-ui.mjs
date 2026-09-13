@@ -51,7 +51,7 @@ const login = await fetch(`${ORIGIN}/api/auth/login`, {
   redirect: "manual"
 });
 const cookie = (login.headers.get("set-cookie") || "").split(";")[0];
-if (!cookie.startsWith("mf_session=")) {
+if (!cookie.startsWith("jamtytrack_session=")) {
   console.error(`Sign-in failed (HTTP ${login.status}). Check the passphrase, or wait out a lockout.`);
   process.exit(1);
 }

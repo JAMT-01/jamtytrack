@@ -43,7 +43,7 @@ npx wrangler versions list
 ```
 
 If you need to see the actual running code, the dashboard under **Workers &
-Pages → macroflow** shows it. Pulling the deployed bundle from the API is also
+Pages → jamtytrack** shows it. Pulling the deployed bundle from the API is also
 possible; the endpoint and the token caveat are written up in `recovered/README.md`
 **on the `master` branch** (that directory does not exist here).
 
@@ -118,7 +118,7 @@ Anything hand-dropped there disappears on the next build and never shows in
 ## 4. Back up first
 
 ```bash
-npx wrangler d1 export macroflow --remote --output backup-before-redesign.sql
+npx wrangler d1 export jamtytrack --remote --output backup-before-redesign.sql
 ```
 
 Keep it outside the repo. It is a full copy of your diary.
