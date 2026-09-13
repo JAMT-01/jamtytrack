@@ -70,3 +70,13 @@ artifact, including later habit history UI changes absent from older recovery
 sources. This repair updates its navigation helpers and `worker/habits-assets.ts`
 selectively. Do not regenerate the entire bundle from `recovered/BUNDLE-FULL.js`
 or deploy the `source` branch until all production features have been reconciled.
+
+## Garmin connection added on 2026-09-13
+
+The main Worker now exposes a protected `/garmin` connection page and forwards
+`/api/garmin/*` through the `GARMIN_SYNC` service binding. The separate connector
+Worker is `jamtytrack-garmin-sync`; its setup, data handling, tests, and connection
+status are documented in `integrations/garmin/README.md`. The deployment at setup
+is `1246069c-0e3a-454e-a058-535324d5cca3`. Existing assets, diary data, and original
+secret bindings were preserved. Garmin authentication must succeed before its
+15-minute sync begins writing automatic walking check-ins.

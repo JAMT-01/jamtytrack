@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "jamtytrack-garmin-sync",
+  "account_id": "6c3b2df3d669fda007025e023ffee12c",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-13",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "APP_ORIGIN": "https://jamtytrack.montagnertudor.org",
+    "HABIT_ID": "b1a7d4c2-9e35-4f18-8a6b-3c0d5e7f2a91"
+  },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "jamtytrack",
+    "database_id": "4fa3290f-cf68-410a-840e-8fb3a22561c2"
+  }],
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "observability": { "enabled": true, "head_sampling_rate": 1, "logs": { "invocation_logs": false } }
+}

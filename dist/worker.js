@@ -19917,7 +19917,9 @@ async function checkIn(env, habitId, input = {}) {
      VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (habit_id, done_date) DO UPDATE SET
        value = COALESCE(excluded.value, habit_entries.value),
-       note  = CASE WHEN excluded.note <> '' THEN excluded.note ELSE habit_entries.note END`
+       note  = CASE WHEN excluded.note <> '' THEN excluded.note ELSE habit_entries.note END,
+       source = excluded.source,
+       logged_at = excluded.logged_at`
   ).bind(
     crypto.randomUUID(),
     habitId,
@@ -20865,6 +20867,9 @@ const HABITS_CLIENT_SOURCE = (
 
     var bar = el('div', { class: 'bar' });
     bar.appendChild(el('h2', null, 'Habits'));
+    var garminLink = el('a', { href: '/garmin', title: 'Sync recorded walks from Garmin' }, 'Garmin sync');
+    garminLink.style.cssText = 'font:600 13px system-ui;color:inherit;margin-left:auto;margin-right:16px;';
+    bar.appendChild(garminLink);
     var closeButton = el('button', { class: 'x', 'aria-label': 'Close habits' }, '\\u00d7');
     closeButton.addEventListener('click', close);
     bar.appendChild(closeButton);
@@ -21240,7 +21245,7 @@ function injectHabitsClient(response) {
   if (!(response.headers.get("content-type") || "").includes("text/html")) return response;
   return new HTMLRewriter().on("head", {
     element(element) {
-      element.append('<script src="/habits-client.js?v=20260913-nav" defer></script>', { html: true });
+      element.append('<script src="/habits-client.js?v=20260913-garmin" defer></script>', { html: true });
     }
   }).transform(response);
 }
@@ -21599,6 +21604,32 @@ app.delete("/api/habits/:id/check", async (c) => {
   const removed = await undoCheckIn(c.env, c.req.param("id"), c.req.query("date") || void 0);
   return c.json({ ok: removed });
 });
+
+// Included verbatim in the recovered production bundle before its asset fallback.
+// The app's existing password middleware runs before these routes.
+async function garminProxy(c) {
+  if (!c.env.GARMIN_SYNC || !c.env.GARMIN_SYNC_TOKEN) return c.json({error: 'Garmin sync is not configured yet.'}, 503);
+  const incoming = c.req.raw;
+  if (incoming.method !== 'GET' && incoming.method !== 'HEAD') {
+    const expectedOrigin = new URL(c.env.APP_URL).origin;
+    if (incoming.headers.get('origin') !== expectedOrigin) return c.json({error: 'This request must come from Jamtytrack.'}, 403);
+  }
+  const url = new URL(incoming.url);
+  url.hostname = 'garmin.internal';
+  url.pathname = url.pathname === '/garmin' ? '/' : url.pathname.replace('/api/garmin/', '/api/');
+  const headers = new Headers({Authorization: 'Bearer ' + c.env.GARMIN_SYNC_TOKEN});
+  if (incoming.headers.has('content-type')) headers.set('content-type', incoming.headers.get('content-type'));
+  try {
+    return await c.env.GARMIN_SYNC.fetch(new Request(url, {
+      method: incoming.method, headers, redirect: 'manual', duplex: 'half',
+      body: incoming.method === 'GET' || incoming.method === 'HEAD' ? undefined : incoming.body,
+    }));
+  } catch {
+    return c.json({error: 'The Garmin connection service is temporarily unavailable.'}, 503);
+  }
+}
+app.get('/garmin', garminProxy);
+app.all('/api/garmin/*', garminProxy);
 
 app.all("*", async (c) => injectHabitsClient(injectProgressClient(await c.env.ASSETS.fetch(c.req.raw))));
 app.onError((error51, c) => {

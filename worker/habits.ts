@@ -337,7 +337,9 @@ export async function checkIn(
      VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (habit_id, done_date) DO UPDATE SET
        value = COALESCE(excluded.value, habit_entries.value),
-       note  = CASE WHEN excluded.note <> '' THEN excluded.note ELSE habit_entries.note END`
+       note  = CASE WHEN excluded.note <> '' THEN excluded.note ELSE habit_entries.note END,
+       source = excluded.source,
+       logged_at = excluded.logged_at`
   )
     .bind(
       crypto.randomUUID(),

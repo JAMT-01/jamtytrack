@@ -43,9 +43,18 @@
     {
       "name": "TELEGRAM_WEBHOOK_SECRET",
       "type": "inherit"
+    },
+    {
+      "name": "GARMIN_SYNC",
+      "type": "service",
+      "service": "jamtytrack-garmin-sync"
+    },
+    {
+      "name": "GARMIN_SYNC_TOKEN",
+      "type": "inherit"
     }
   ],
   "annotations": {
-    "workers/message": "Restore Habits navigation on desktop and preserve meal row controls; support mobile layout switching"
+    "workers/message": "Add protected Garmin connection and sync controls while preserving the recovered app"
   }
 }
