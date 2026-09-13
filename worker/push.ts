@@ -1,5 +1,5 @@
 /**
- * Web Push for MacroFlow — RFC 8291 (payload encryption) + RFC 8292 (VAPID).
+ * Web Push for Jamtytrack — RFC 8291 (payload encryption) + RFC 8292 (VAPID).
  *
  * Implemented directly on Web Crypto because the usual libraries (web-push,
  * web-push-libs) reach for Node's `crypto` module and do not run on Workers even

@@ -376,7 +376,7 @@ const ONERROR_REPLACEMENT = `  if (error51 instanceof external_exports.ZodError)
 
 // ---- habit wiring (added 2026-08-27) ----
 //
-// 3. The cron. The every-minute trigger already exists (macroflow-kb.md §2) and
+// 3. The cron. The every-minute trigger already exists (jamtytrack-kb.md §2) and
 //    already calls checkReminders; habits ride the same tick. The two run
 //    concurrently and are wrapped separately, so a habit reminder that throws
 //    cannot take the meal reminders down with it — and vice versa.
@@ -399,7 +399,7 @@ const SCHEDULED_REPLACEMENT = String.raw`  async scheduled(_event, env, ctx) {
 //    the nudge arrives and is answerable in place, without opening the app.
 const COMMANDS_ANCHOR = String.raw`  const text = message.text.trim();
   if (/^\/start/i.test(text)) {
-    await sendTelegramMessage(env, "\u{1F44B} <b>Macroflow is connected.</b>\n\nUse /today for your totals or /log followed by a meal description.", chatId);`;
+    await sendTelegramMessage(env, "\u{1F44B} <b>Jamtytrack is connected.</b>\n\nUse /today for your totals or /log followed by a meal description.", chatId);`;
 const COMMANDS_REPLACEMENT = String.raw`  const text = message.text.trim();
   const habitReply = await handleHabitCommand(env, text);
   if (habitReply) {
@@ -407,7 +407,7 @@ const COMMANDS_REPLACEMENT = String.raw`  const text = message.text.trim();
     return;
   }
   if (/^\/start/i.test(text)) {
-    await sendTelegramMessage(env, "\u{1F44B} <b>Macroflow is connected.</b>\n\nUse /today for your totals, /log to log a meal, or /habits for your streaks.", chatId);`;
+    await sendTelegramMessage(env, "\u{1F44B} <b>Jamtytrack is connected.</b>\n\nUse /today for your totals, /log to log a meal, or /habits for your streaks.", chatId);`;
 
 // 5. /help lists the new commands. HABIT_HELP is defined in
 //    worker/habit-reminders.ts so the list has one source rather than two that
@@ -459,7 +459,7 @@ const out = PATCHES.reduce(
  * Checked as .mjs so `export default` is legal, and only parsed — nothing runs,
  * so the Cloudflare-only globals it references never need to exist.
  */
-const checkDir = mkdtempSync(join(tmpdir(), 'macroflow-build-'));
+const checkDir = mkdtempSync(join(tmpdir(), 'jamtytrack-build-'));
 const checkFile = join(checkDir, 'candidate.mjs');
 writeFileSync(checkFile, out);
 try {

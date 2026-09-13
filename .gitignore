@@ -1,6 +1,6 @@
 # Wrangler local simulation state and cache. Never useful to share, and the
 # local D1/KV simulation under here is what produced the false "PHOTOS is empty"
-# reading recorded in macroflow-kb.md §5.
+# reading recorded in jamtytrack-kb.md §5.
 .wrangler/
 
 node_modules/
@@ -16,7 +16,7 @@ node_modules/
 
 # Design scratch assets. Reference material with no build role, and this repo is
 # public — kept local rather than pushed. The carrot itself lives in the code, as
-# a traced path in macroflow-app/src/components/CarrotMark.tsx.
+# a traced path in jamtytrack-app/src/components/CarrotMark.tsx.
 PWA Design Styles.zip
 pics/
 

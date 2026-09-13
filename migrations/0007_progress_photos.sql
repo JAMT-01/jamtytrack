@@ -8,7 +8,7 @@
 --
 -- STORAGE SPLIT: this table holds only metadata. The image bytes live in the
 -- `PHOTOS` KV namespace, exactly as meal photos do, because R2 is not enabled on
--- this account (API error 10042 — see macroflow-kb.md §2). Bytes in D1 would
+-- this account (API error 10042 — see jamtytrack-kb.md §2). Bytes in D1 would
 -- bloat a database whose whole point is fast macro queries, and would land in
 -- `/api/export`'s JSON.
 --

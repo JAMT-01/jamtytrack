@@ -1,8 +1,8 @@
 /**
- * Design-language probe for MacroFlow's frontend.
+ * Design-language probe for Jamtytrack's frontend.
  *
  * Why this exists: the frontend lives only in the Worker's ASSETS binding
- * (macroflow-kb.md §9). It cannot be downloaded, and the site is password-gated,
+ * (jamtytrack-kb.md §9). It cannot be downloaded, and the site is password-gated,
  * so every styling decision in worker/progress-assets.ts has been inference from
  * a screenshot. This reads the real thing.
  *

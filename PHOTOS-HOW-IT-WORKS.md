@@ -21,7 +21,7 @@ other without touching its code. Photos are metadata in D1 + bytes in KV under
 
 | | `master` | `source` |
 |---|---|---|
-| Checkout | `C:/Users/agust/OneDrive/Escritorio/macros` | `C:/Users/agust/macroflow-app` (worktree) |
+| Checkout | `C:/Users/agust/OneDrive/Escritorio/macros` | `C:/Users/agust/jamtytrack-app` (worktree) |
 | What it is | the recovered production bundle + patches | React + Vite rewrite, "Jamtytrack" |
 | Holds | Worker: routes, photo lock, habits, reports, push, cron | the frontend the ASSETS binding serves |
 | Deployed? | **yes — the Worker** | **yes — the frontend assets** |
@@ -40,7 +40,7 @@ Pull it and diff — never assume:
 export CLOUDFLARE_ACCOUNT_ID=6c3b2df3d669fda007025e023ffee12c
 TOKEN=$(grep '^oauth_token' "$APPDATA/xdg.config/.wrangler/config/default.toml" | sed 's/.*= *"//; s/"//')
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/macroflow/environments/production/content" \
+  "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/jamtytrack/environments/production/content" \
   > /tmp/live.multipart
 # the index.js part is the deployed Worker; diff it against dist/worker.js
 ```
@@ -68,7 +68,7 @@ wrote the data first, so `source` wins.
 ### Checking the data is intact
 
 ```bash
-npx wrangler d1 execute macroflow --remote --command \
+npx wrangler d1 execute jamtytrack --remote --command \
   "SELECT id, taken_date, pose, image_path, encrypted FROM progress_photos ORDER BY taken_at;"
 npx wrangler kv key list --namespace-id cafdcdcb096c4b23b5978317a08a0fa1 --remote | grep progress-photos
 ```
@@ -80,7 +80,7 @@ all matched.
 >
 > Without it, `wrangler kv key list` reads the local `.wrangler` simulation and
 > returns `[]` on a namespace that is not empty. That single missing flag is what
-> produced the "all the photos are gone" entry that sat in `macroflow-kb.md` §5
+> produced the "all the photos are gone" entry that sat in `jamtytrack-kb.md` §5
 > for days. **An empty result without `--remote` means nothing.**
 
 ---
@@ -208,7 +208,7 @@ pad; with `separateSecret: true` the pad renders with 0–9, a delete key, and a
 **To get the pad back, set the secret:**
 
 ```bash
-npx wrangler secret put PHOTO_PASSPHRASE --name macroflow
+npx wrangler secret put PHOTO_PASSPHRASE --name jamtytrack
 ```
 
 What this does and does not change:
@@ -231,7 +231,7 @@ is the fork-reconciliation problem in §8, not a quick fix.
 ### Resetting the lock — when it is safe, and when it destroys everything
 
 ```bash
-npx wrangler d1 execute macroflow --remote --command "SELECT COUNT(*) FROM progress_photos WHERE encrypted = 1;"
+npx wrangler d1 execute jamtytrack --remote --command "SELECT COUNT(*) FROM progress_photos WHERE encrypted = 1;"
 ```
 
 - Result **0** — no photo is encrypted, the row decrypts nothing, and deleting it
@@ -315,7 +315,7 @@ The frontend is readable. There is no reason to guess at it any more.
 node tools/stub-frontend.mjs 8141 path/to/progress-client.js
 ```
 
-Serves the real built app from `macroflow-app/dist` against stubbed APIs, and
+Serves the real built app from `jamtytrack-app/dist` against stubbed APIs, and
 injects the client exactly as the Worker does. Two response shapes are
 load-bearing and easy to get wrong:
 

@@ -1,9 +1,9 @@
 # Progress photos — setup, and who can actually see them
 
-Body progress photos for MacroFlow: capture, timeline, and a same-pose
+Body progress photos for Jamtytrack: capture, timeline, and a same-pose
 before/after comparison with the bodyweight delta.
 
-`macros.md` §10 lists **Photos — every 4 weeks — same light, pose, time of day**
+`jamtytrack.md` §10 lists **Photos — every 4 weeks — same light, pose, time of day**
 as the metric that "catches what the scale can't", and it was the only row in
 that table with nowhere to go. Weight has `weight_entries`; this is the visual
 companion to it.
@@ -157,7 +157,7 @@ app.all('*', async (c) =>
 
 ```bash
 export CLOUDFLARE_ACCOUNT_ID=6c3b2df3d669fda007025e023ffee12c
-npx wrangler d1 execute macroflow --remote --file migrations/0007_progress_photos.sql
+npx wrangler d1 execute jamtytrack --remote --file migrations/0007_progress_photos.sql
 ```
 
 Done. `progress_photos` exists with 0 rows, alongside both indexes
@@ -173,7 +173,7 @@ The routes are live (§8), so this table is now writable from the app. Dropping 
 would break them — only do this alongside a Worker rollback:
 
 ```bash
-npx wrangler d1 execute macroflow --remote --command "DROP TABLE progress_photos;"
+npx wrangler d1 execute jamtytrack --remote --command "DROP TABLE progress_photos;"
 ```
 
 ---
@@ -330,7 +330,7 @@ leftover is an unreferenced object rather than a broken row. To find them:
 ```bash
 npx wrangler kv key list --namespace-id cafdcdcb096c4b23b5978317a08a0fa1 --remote \
   | grep '"progress/'
-npx wrangler d1 execute macroflow --remote --command "SELECT image_path FROM progress_photos;"
+npx wrangler d1 execute jamtytrack --remote --command "SELECT image_path FROM progress_photos;"
 ```
 
 Anything in the first list and not the second is orphaned and safe to delete.
@@ -338,7 +338,7 @@ Anything in the first list and not the second is orphaned and safe to delete.
 > **`--remote` is not optional in those commands.** Without it, `wrangler kv key
 > list` reads the local `.wrangler` simulation and returns `[]` on a namespace
 > that is not empty. That is exactly what produced "Known issue #1: orphaned meal
-> photos, PHOTOS contains zero keys" in `macroflow-kb.md` §5 — the namespace
+> photos, PHOTOS contains zero keys" in `jamtytrack-kb.md` §5 — the namespace
 > actually holds all 6 meal photos. That issue is retracted; see §7.
 
 ---
@@ -377,7 +377,7 @@ check can reach:
 
 ---
 
-## 7. Correction to `macroflow-kb.md` §5
+## 7. Correction to `jamtytrack-kb.md` §5
 
 Known issue #1 — "Orphaned meal photos… the `PHOTOS` KV namespace contains
 **zero keys**" — is **wrong**, and was wrong when written.
@@ -393,7 +393,7 @@ No meal photos are missing and no image references are dangling.
 
 ## 8. How this was deployed without a source tree
 
-`macroflow-kb.md` §10 listed "rebuild a buildable source tree" as the blocker for
+`jamtytrack-kb.md` §10 listed "rebuild a buildable source tree" as the blocker for
 every pending feature. That turned out not to be the only option, and the
 alternative is lower risk.
 
@@ -449,7 +449,7 @@ this, so it went through the raw API (`dist/metadata.json` is the exact payload)
 }
 ```
 
-`POST …/workers/scripts/macroflow/versions` creates a version that serves **no
+`POST …/workers/scripts/jamtytrack/versions` creates a version that serves **no
 traffic**. That made the bindings auditable before anything went live — and they
 came back an exact structural match to production: all six bindings, both secrets
 inherited, `ASSETS` present, and `raw_run_worker_first: true` preserved.
@@ -481,7 +481,7 @@ proof.
 **Sign in and load the app.** If anything is wrong, roll back:
 
 ```bash
-npx wrangler rollback --name macroflow
+npx wrangler rollback --name jamtytrack
 ```
 
 The previous version is `1f24e9ee-7d5f-43ed-adb0-5286f8b118ff`. Rollback is safe:
@@ -507,7 +507,7 @@ accent, system font. `settings.theme` is **light**, so it looked pasted in from 
 different app. It was.
 
 The cause is structural, not carelessness. There is still no local copy of the
-frontend (`macroflow-kb.md` §9) and the site is 401-gated, so the design could
+frontend (`jamtytrack-kb.md` §9) and the site is 401-gated, so the design could
 not be looked at — and the UI renders into a **shadow root**, which was chosen
 precisely so it would inherit none of the app's CSS. Isolation was doing exactly
 its job, and its job was wrong here.

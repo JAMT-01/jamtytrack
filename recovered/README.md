@@ -54,14 +54,14 @@ it:
 
 ```bash
 curl -H "Authorization: Bearer $OAUTH_TOKEN" \
-  "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/workers/services/macroflow/environments/production/content"
+  "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/workers/services/jamtytrack/environments/production/content"
 ```
 
 It returns `multipart/form-data`; the `index.js` part is the bundle.
 
 Do **not** use `wrangler init --from-dash <name> -y` — the `-y` flag skips the
 download and scaffolds a hello-world project instead, carrying a `wrangler.jsonc`
-with `name: macroflow` that would overwrite the live Worker if deployed.
+with `name: jamtytrack` that would overwrite the live Worker if deployed.
 
 ## Not recovered
 

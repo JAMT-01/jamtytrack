@@ -2,8 +2,8 @@ function openRouterHeaders(apiKey, env) {
   return {
     "content-type": "application/json",
     "authorization": `Bearer ${apiKey}`,
-    "HTTP-Referer": env.APP_URL || "https://macro.montagnertudor.org",
-    "X-OpenRouter-Title": "Macroflow"
+    "HTTP-Referer": env.APP_URL || "https://jamtytrack.montagnertudor.org",
+    "X-OpenRouter-Title": "Jamtytrack"
   };
 }
 function toBase64(bytes) {

@@ -590,8 +590,8 @@ function openRouterHeaders(apiKey, env) {
   return {
     "content-type": "application/json",
     "authorization": `Bearer ${apiKey}`,
-    "HTTP-Referer": env.APP_URL || "https://macro.montagnertudor.org",
-    "X-OpenRouter-Title": "Macroflow"
+    "HTTP-Referer": env.APP_URL || "https://jamtytrack.montagnertudor.org",
+    "X-OpenRouter-Title": "Jamtytrack"
   };
 }
 function toBase64(bytes) {
@@ -868,7 +868,7 @@ async function sendTelegramMessage(env, text, chatId) {
     chat_id: target,
     text,
     parse_mode: "HTML",
-    reply_markup: { inline_keyboard: [[{ text: "Open Macroflow", url: env.APP_URL || "https://macro.montagnertudor.org" }]] }
+    reply_markup: { inline_keyboard: [[{ text: "Open Jamtytrack", url: env.APP_URL || "https://jamtytrack.montagnertudor.org" }]] }
   });
 }
 async function todaySummary(env) {
@@ -904,7 +904,7 @@ async function logFromTelegram(env, text) {
   await env.DB.batch(statements);
   const calories = analysis.items.reduce((sum, item) => sum + item.calories, 0);
   return `\u2705 Logged <b>${analysis.title}</b> \xB7 ${Math.round(calories)} kcal
-Filed as <b>${mealType}</b>. Review the estimate and the category in Macroflow when you can.`;
+Filed as <b>${mealType}</b>. Review the estimate and the category in Jamtytrack when you can.`;
 }
 async function handleTelegramUpdate(env, update) {
   const message = update.message;
@@ -916,7 +916,7 @@ async function handleTelegramUpdate(env, update) {
   }
   const text = message.text.trim();
   if (/^\/start/i.test(text)) {
-    await sendTelegramMessage(env, "\u{1F44B} <b>Macroflow is connected.</b>\n\nUse /today for your totals or /log followed by a meal description.", chatId);
+    await sendTelegramMessage(env, "\u{1F44B} <b>Jamtytrack is connected.</b>\n\nUse /today for your totals or /log followed by a meal description.", chatId);
   } else if (/^\/(today|remaining)/i.test(text)) {
     await sendTelegramMessage(env, await todaySummary(env), chatId);
   } else if (/^\/log\b/i.test(text)) {
@@ -18091,7 +18091,7 @@ init_analysis();
 init_telegram();
 
 // worker/auth.ts
-var COOKIE = "mf_session";
+var COOKIE = "jamtytrack_session";
 var SESSION_DAYS = 30;
 var MAX_FAILURES = 8;
 var LOCKOUT_MINUTES = 15;
@@ -18102,7 +18102,7 @@ __name(bytesToBase64Url, "bytesToBase64Url");
 async function signingKey(password) {
   return crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(`${password}::macroflow-session-v1`),
+    new TextEncoder().encode(`${password}::jamtytrack-session-v1`),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -18182,7 +18182,7 @@ function loginPage(options = { configured: true }) {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#172019" />
 <meta name="robots" content="noindex, nofollow" />
-<title>Macroflow</title>
+<title>Jamtytrack</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -18210,7 +18210,7 @@ function loginPage(options = { configured: true }) {
 <body>
   <form method="POST" action="/api/auth/login">
     <div class="mark">M</div>
-    <h1>Macroflow</h1>
+    <h1>Jamtytrack</h1>
     <p class="sub">Enter your passphrase to open the diary.</p>
     ${message}
     <label>Passphrase
@@ -18234,7 +18234,7 @@ app.use("*", async (c, next) => {
   const path = new URL(c.req.url).pathname;
   if (PUBLIC_PATHS.has(path)) return next();
   if (!password) {
-    if (path.startsWith("/api/")) return c.json({ error: "This Macroflow has no passphrase configured yet." }, 503);
+    if (path.startsWith("/api/")) return c.json({ error: "This Jamtytrack has no passphrase configured yet." }, 503);
     return c.html(loginPage({ configured: false }), 503);
   }
   if (await hasValidSession(c.req.raw, password)) return next();
@@ -18652,7 +18652,7 @@ app.post("/api/weight", async (c) => {
 });
 app.post("/api/telegram/test", async (c) => {
   const { sendTelegramMessage: sendTelegramMessage2 } = await Promise.resolve().then(() => (init_telegram(), telegram_exports));
-  await sendTelegramMessage2(c.env, "\u2705 <b>Macroflow is connected.</b> Your Cloudflare Worker reminder service is working.");
+  await sendTelegramMessage2(c.env, "\u2705 <b>Jamtytrack is connected.</b> Your Cloudflare Worker reminder service is working.");
   return c.json({ ok: true });
 });
 app.post("/api/telegram/webhook/register", async (c) => {
@@ -18681,7 +18681,7 @@ app.get("/api/export", async (c) => {
     weights: weights.results ?? [],
     mealMemories: memories.results ?? []
   }, 200, {
-    "content-disposition": `attachment; filename=macroflow-export-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json`
+    "content-disposition": `attachment; filename=jamtytrack-export-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json`
   });
 });
 app.get("/uploads/:key", async (c) => {

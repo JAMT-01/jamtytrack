@@ -26,7 +26,7 @@ async function sendTelegramMessage(env, text, chatId) {
     chat_id: target,
     text,
     parse_mode: "HTML",
-    reply_markup: { inline_keyboard: [[{ text: "Open Macroflow", url: env.APP_URL || "https://macro.montagnertudor.org" }]] }
+    reply_markup: { inline_keyboard: [[{ text: "Open Jamtytrack", url: env.APP_URL || "https://jamtytrack.montagnertudor.org" }]] }
   });
 }
 async function todaySummary(env) {
@@ -62,7 +62,7 @@ async function logFromTelegram(env, text) {
   await env.DB.batch(statements);
   const calories = analysis.items.reduce((sum, item) => sum + item.calories, 0);
   return `\u2705 Logged <b>${analysis.title}</b> \xB7 ${Math.round(calories)} kcal
-Filed as <b>${mealType}</b>. Review the estimate and the category in Macroflow when you can.`;
+Filed as <b>${mealType}</b>. Review the estimate and the category in Jamtytrack when you can.`;
 }
 async function handleTelegramUpdate(env, update) {
   const message = update.message;
@@ -74,7 +74,7 @@ async function handleTelegramUpdate(env, update) {
   }
   const text = message.text.trim();
   if (/^\/start/i.test(text)) {
-    await sendTelegramMessage(env, "\u{1F44B} <b>Macroflow is connected.</b>\n\nUse /today for your totals or /log followed by a meal description.", chatId);
+    await sendTelegramMessage(env, "\u{1F44B} <b>Jamtytrack is connected.</b>\n\nUse /today for your totals or /log followed by a meal description.", chatId);
   } else if (/^\/(today|remaining)/i.test(text)) {
     await sendTelegramMessage(env, await todaySummary(env), chatId);
   } else if (/^\/log\b/i.test(text)) {

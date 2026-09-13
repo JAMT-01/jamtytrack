@@ -13,38 +13,38 @@
   },
   "bindings": [
     {
-      "type": "inherit",
-      "name": "APP_PASSWORD"
+      "name": "APP_PASSWORD",
+      "type": "inherit"
     },
     {
-      "type": "inherit",
-      "name": "OPENROUTER_API_KEY"
-    },
-    {
-      "type": "plain_text",
       "name": "APP_URL",
-      "text": "https://jamtytrack.montagnertudor.org"
+      "text": "https://jamtytrack.montagnertudor.org",
+      "type": "plain_text"
     },
     {
-      "type": "assets",
-      "name": "ASSETS"
+      "name": "ASSETS",
+      "type": "assets"
     },
     {
-      "type": "d1",
       "name": "DB",
-      "id": "978a69cc-f981-4fa8-a136-c67b556bb643"
+      "type": "d1",
+      "id": "4fa3290f-cf68-410a-840e-8fb3a22561c2"
     },
     {
-      "type": "kv_namespace",
+      "name": "OPENROUTER_API_KEY",
+      "type": "inherit"
+    },
+    {
       "name": "PHOTOS",
-      "namespace_id": "cafdcdcb096c4b23b5978317a08a0fa1"
+      "namespace_id": "cafdcdcb096c4b23b5978317a08a0fa1",
+      "type": "kv_namespace"
     },
     {
-      "type": "inherit",
-      "name": "TELEGRAM_WEBHOOK_SECRET"
+      "name": "TELEGRAM_WEBHOOK_SECRET",
+      "type": "inherit"
     }
   ],
   "annotations": {
-    "workers/message": "Habits: full-bleed page under the nav, not a floating card"
+    "workers/message": "Rename Jamtytrack throughout; retain the current live app and assets"
   }
 }

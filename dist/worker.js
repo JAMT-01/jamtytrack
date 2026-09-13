@@ -590,8 +590,8 @@ function openRouterHeaders(apiKey, env) {
   return {
     "content-type": "application/json",
     "authorization": `Bearer ${apiKey}`,
-    "HTTP-Referer": env.APP_URL || "https://macro.montagnertudor.org",
-    "X-OpenRouter-Title": "Macroflow"
+    "HTTP-Referer": env.APP_URL || "https://jamtytrack.montagnertudor.org",
+    "X-OpenRouter-Title": "Jamtytrack"
   };
 }
 function toBase64(bytes) {
@@ -868,7 +868,7 @@ async function sendTelegramMessage(env, text, chatId) {
     chat_id: target,
     text,
     parse_mode: "HTML",
-    reply_markup: { inline_keyboard: [[{ text: "Open Macroflow", url: env.APP_URL || "https://macro.montagnertudor.org" }]] }
+    reply_markup: { inline_keyboard: [[{ text: "Open Jamtytrack", url: env.APP_URL || "https://jamtytrack.montagnertudor.org" }]] }
   });
 }
 async function todaySummary(env) {
@@ -904,7 +904,7 @@ async function logFromTelegram(env, text) {
   await env.DB.batch(statements);
   const calories = analysis.items.reduce((sum, item) => sum + item.calories, 0);
   return `\u2705 Logged <b>${analysis.title}</b> \xB7 ${Math.round(calories)} kcal
-Filed as <b>${mealType}</b>. Review the estimate and the category in Macroflow when you can.`;
+Filed as <b>${mealType}</b>. Review the estimate and the category in Jamtytrack when you can.`;
 }
 async function handleTelegramUpdate(env, update) {
   const message = update.message;
@@ -924,7 +924,7 @@ async function handleTelegramUpdate(env, update) {
     return;
   }
   if (/^\/start/i.test(text)) {
-    await sendTelegramMessage(env, "\u{1F44B} <b>Macroflow is connected.</b>\n\nUse /today for your totals, /log to log a meal, or /habits for your streaks.", chatId);
+    await sendTelegramMessage(env, "\u{1F44B} <b>Jamtytrack is connected.</b>\n\nUse /today for your totals, /log to log a meal, or /habits for your streaks.", chatId);
   } else if (/^\/(today|remaining)/i.test(text)) {
     await sendTelegramMessage(env, await todaySummary(env), chatId);
   } else if (/^\/log\b/i.test(text)) {
@@ -18099,7 +18099,7 @@ init_analysis();
 init_telegram();
 
 // worker/auth.ts
-var COOKIE = "mf_session";
+var COOKIE = "jamtytrack_session";
 var SESSION_DAYS = 30;
 var MAX_FAILURES = 8;
 var LOCKOUT_MINUTES = 15;
@@ -18110,7 +18110,7 @@ __name(bytesToBase64Url, "bytesToBase64Url");
 async function signingKey(password) {
   return crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(`${password}::macroflow-session-v1`),
+    new TextEncoder().encode(`${password}::jamtytrack-session-v1`),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -18190,7 +18190,7 @@ function loginPage(options = { configured: true }) {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#172019" />
 <meta name="robots" content="noindex, nofollow" />
-<title>Macroflow</title>
+<title>Jamtytrack</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -18218,7 +18218,7 @@ function loginPage(options = { configured: true }) {
 <body>
   <form method="POST" action="/api/auth/login">
     <div class="mark">M</div>
-    <h1>Macroflow</h1>
+    <h1>Jamtytrack</h1>
     <p class="sub">Enter your passphrase to open the diary.</p>
     ${message}
     <label>Passphrase
@@ -18242,7 +18242,7 @@ app.use("*", async (c, next) => {
   const path = new URL(c.req.url).pathname;
   if (PUBLIC_PATHS.has(path)) return next();
   if (!password) {
-    if (path.startsWith("/api/")) return c.json({ error: "This Macroflow has no passphrase configured yet." }, 503);
+    if (path.startsWith("/api/")) return c.json({ error: "This Jamtytrack has no passphrase configured yet." }, 503);
     return c.html(loginPage({ configured: false }), 503);
   }
   if (await hasValidSession(c.req.raw, password)) return next();
@@ -18660,7 +18660,7 @@ app.post("/api/weight", async (c) => {
 });
 app.post("/api/telegram/test", async (c) => {
   const { sendTelegramMessage: sendTelegramMessage2 } = await Promise.resolve().then(() => (init_telegram(), telegram_exports));
-  await sendTelegramMessage2(c.env, "\u2705 <b>Macroflow is connected.</b> Your Cloudflare Worker reminder service is working.");
+  await sendTelegramMessage2(c.env, "\u2705 <b>Jamtytrack is connected.</b> Your Cloudflare Worker reminder service is working.");
   return c.json({ ok: true });
 });
 app.post("/api/telegram/webhook/register", async (c) => {
@@ -18689,7 +18689,7 @@ app.get("/api/export", async (c) => {
     weights: weights.results ?? [],
     mealMemories: memories.results ?? []
   }, 200, {
-    "content-disposition": `attachment; filename=macroflow-export-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json`
+    "content-disposition": `attachment; filename=jamtytrack-export-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json`
   });
 });
 app.get("/uploads/:key", async (c) => {
@@ -18704,7 +18704,7 @@ app.get("/uploads/:key", async (c) => {
     "vary": "Cookie"
   });
 });
-const UNLOCK_COOKIE = "mf_photos";
+const UNLOCK_COOKIE = "jamtytrack_photos";
 const UNLOCK_MINUTES = 3;
 const GLOBAL_FAILURES = 20;
 const GLOBAL_WINDOW_MINUTES = 60;
@@ -18719,7 +18719,7 @@ function hasSeparatePhotoSecret(env) {
 async function signUnlock(password, payload) {
   const key = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(`${password}::macroflow-photos-v1`),
+    new TextEncoder().encode(`${password}::jamtytrack-photos-v1`),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -18933,7 +18933,7 @@ const PROGRESS_CLIENT_SOURCE = (
    * The first version of this shipped a fixed iOS-dark palette. settings.theme
    * is 'light', so it clashed badly. Guessing a second time would be the same
    * mistake, and there is still no local copy of the frontend to match against
-   * (macroflow-kb.md \xA79) -- so instead of guessing, this samples the live page
+   * (jamtytrack-kb.md \xA79) -- so instead of guessing, this samples the live page
    * for its background, text colour, accent, radius and font, and builds the
    * stylesheet from what it finds.
    *
@@ -19387,7 +19387,7 @@ const PROGRESS_CLIENT_SOURCE = (
 
   /* ---------------------------------------------------------------- nav bar */
 
-  var NAV_FLAG = 'data-macroflow-progress';
+  var NAV_FLAG = 'data-jamtytrack-progress';
 
   /* Outline camera. Inherits currentColor, so it picks up the nav's own icon
      colour including the active/inactive states. */
@@ -19400,7 +19400,7 @@ const PROGRESS_CLIENT_SOURCE = (
 
   /*
    * Locate the app's nav. Nothing about the frontend's markup is known here
-   * (macroflow-kb.md \xA79), so this scores candidates instead of matching a
+   * (jamtytrack-kb.md \xA79), so this scores candidates instead of matching a
    * selector: wide, short, more than one control, and preferably fixed or
    * stuck to the bottom of the viewport.
    */
@@ -19596,35 +19596,35 @@ const PROGRESS_CLIENT_SOURCE = (
 
       var pad = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
       navOverlays(nav).forEach(function (overlay) {
-        overlay.setAttribute('data-macroflow-navpill', '');
+        overlay.setAttribute('data-jamtytrack-navpill', '');
       });
 
-      nav.setAttribute('data-macroflow-grid', String(count));
-      var id = 'macroflow-nav-grid-' + count;
+      nav.setAttribute('data-jamtytrack-grid', String(count));
+      var id = 'jamtytrack-nav-grid-' + count;
       if (document.getElementById(id)) return;
       var gridStyle = document.createElement('style');
       gridStyle.id = id;
       gridStyle.textContent =
-        '[data-macroflow-grid="' + count + '"]{grid-template-columns:repeat(' + count + ',1fr) !important;}' +
-        '[data-macroflow-grid="' + count + '"] > [data-macroflow-navpill]{' +
+        '[data-jamtytrack-grid="' + count + '"]{grid-template-columns:repeat(' + count + ',1fr) !important;}' +
+        '[data-jamtytrack-grid="' + count + '"] > [data-jamtytrack-navpill]{' +
           'width:calc((100% - ' + pad + 'px) / ' + count + ') !important;}' +
-        '[data-macroflow-grid="' + count + '"] > * > span{max-width:100%;white-space:nowrap;' +
+        '[data-jamtytrack-grid="' + count + '"] > * > span{max-width:100%;white-space:nowrap;' +
           'overflow:hidden;text-overflow:ellipsis;}';
       document.head.appendChild(gridStyle);
       return;
     }
 
     if (nav.scrollWidth <= nav.clientWidth + 2) return;
-    nav.setAttribute('data-macroflow-fit', '1');
-    if (document.getElementById('macroflow-nav-fit')) return;
+    nav.setAttribute('data-jamtytrack-fit', '1');
+    if (document.getElementById('jamtytrack-nav-fit')) return;
 
     var flexStyle = document.createElement('style');
-    flexStyle.id = 'macroflow-nav-fit';
+    flexStyle.id = 'jamtytrack-nav-fit';
     flexStyle.textContent =
-      '[data-macroflow-fit]{gap:2px !important;column-gap:2px !important;}' +
-      '[data-macroflow-fit] > *{min-width:0 !important;flex:1 1 0 !important;' +
+      '[data-jamtytrack-fit]{gap:2px !important;column-gap:2px !important;}' +
+      '[data-jamtytrack-fit] > *{min-width:0 !important;flex:1 1 0 !important;' +
         'padding-left:3px !important;padding-right:3px !important;}' +
-      '[data-macroflow-fit] > * *{max-width:100%;white-space:nowrap;overflow:hidden;' +
+      '[data-jamtytrack-fit] > * *{max-width:100%;white-space:nowrap;overflow:hidden;' +
         'text-overflow:ellipsis;}';
     document.head.appendChild(flexStyle);
   }
@@ -19951,11 +19951,12 @@ const HABITS_CLIENT_SOURCE = (
   `
 'use strict';
 (function () {
-  var NAV_FLAG = 'data-macroflow-habits-nav';
+  var NAV_FLAG = 'data-jamtytrack-habits-nav';
 
-  /* Ten weeks of dots: long enough to show a habit taking hold, short enough to
-     stay one glance rather than a chart. Matches HISTORY_DAYS in worker/habits.ts. */
-  var GRID_DAYS = 70;
+  /* Ten calendar weeks: the contribution-graph shape is immediately readable,
+     but still compact enough for the app's narrowest supported phone. This is
+     the same 70-day ceiling returned by worker/habits.ts. */
+  var GRID_WEEKS = 10;
 
   function el(tag, attrs, text) {
     var node = document.createElement(tag);
@@ -19984,6 +19985,18 @@ const HABITS_CLIENT_SOURCE = (
     var p = isoDate.split('-');
     return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12))
       .toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  }
+
+  function fmtMonth(isoDate) {
+    var p = isoDate.split('-');
+    return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12))
+      .toLocaleDateString(undefined, { month: 'short' });
+  }
+
+  /* Monday is row zero. Date#getUTCDay uses Sunday as zero. */
+  function weekdayIndex(isoDate) {
+    var p = isoDate.split('-');
+    return (new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12)).getUTCDay() + 6) % 7;
   }
 
   /* ------------------------------------------------------------- theming */
@@ -20076,10 +20089,26 @@ const HABITS_CLIENT_SOURCE = (
 
   function readTheme() {
     var bodyStyle = getComputedStyle(document.body);
+    var rootStyle = getComputedStyle(document.documentElement);
     var bg = pageBackground();
     var dark = luminance(bg) < 0.5;
-    var text = parseColor(bodyStyle.color) || (dark ? { r: 245, g: 245, b: 247 } : { r: 20, g: 20, b: 22 });
+    function variable(names) {
+      for (var i = 0; i < names.length; i++) {
+        var found = parseColor(rootStyle.getPropertyValue(names[i]));
+        if (found) return found;
+      }
+      return null;
+    }
+
+    var text = variable(['--ink', '--text', '--color-text']) || parseColor(bodyStyle.color) ||
+      (dark ? { r: 245, g: 245, b: 247 } : { r: 20, g: 20, b: 22 });
     var accent = accentColor(bg, text);
+    var surface = variable(['--surface', '--card', '--color-surface']) ||
+      (dark ? mix(bg, { r: 255, g: 255, b: 255 }, 0.07) : mix(bg, { r: 255, g: 255, b: 255 }, 0.72));
+    var soft = variable(['--soft', '--sunken', '--color-soft']) ||
+      (dark ? mix(bg, { r: 255, g: 255, b: 255 }, 0.1) : mix(bg, { r: 0, g: 0, b: 0 }, 0.045));
+    var line = variable(['--line', '--border', '--color-border']) || mix(text, bg, 0.86);
+    var muted = variable(['--muted', '--color-muted']) || mix(text, bg, 0.45);
 
     var radiusTally = {};
     var radius = '';
@@ -20092,20 +20121,40 @@ const HABITS_CLIENT_SOURCE = (
     }
     if (!radius) radius = '10px';
 
+    /* Controls are pills in Jamtytrack, while cards use a restrained 18-26px
+       curve. Sampling card-like surfaces separately prevents a 999px button
+       radius from turning every habit into a capsule. */
+    var cardRadiusTally = {};
+    var cardRadius = '';
+    var cards = document.querySelectorAll('[class*="card" i], [class*="panel" i], [class*="overview" i]');
+    for (var m = 0; m < cards.length && m < 120; m++) {
+      var cr = parseFloat(getComputedStyle(cards[m]).borderRadius);
+      if (!Number.isFinite(cr) || cr < 12 || cr > 36) continue;
+      var crKey = Math.round(cr) + 'px';
+      cardRadiusTally[crKey] = (cardRadiusTally[crKey] || 0) + 1;
+      if (!cardRadius || cardRadiusTally[crKey] > cardRadiusTally[cardRadius]) cardRadius = crKey;
+    }
+    if (!cardRadius) cardRadius = '22px';
+
+    var declaredShadow = rootStyle.getPropertyValue('--shadow').trim();
+
     return {
       font: bodyStyle.fontFamily || '-apple-system,BlinkMacSystemFont,system-ui,sans-serif',
+      mono: '"DM Mono",ui-monospace,"SFMono-Regular",Consolas,monospace',
       radius: radius,
+      cardRadius: cardRadius,
       bg: toCss(bg),
-      surface: toCss(dark ? mix(bg, { r: 255, g: 255, b: 255 }, 0.07) : mix(bg, { r: 0, g: 0, b: 0 }, 0.04)),
+      surface: toCss(surface),
+      soft: toCss(soft),
       text: toCss(text),
-      muted: toCss(mix(text, bg, 0.45)),
-      border: toCss(mix(text, bg, 0.86)),
+      muted: toCss(muted),
+      border: toCss(line),
       accent: toCss(accent),
-      /* Dots need the accent at low opacity for "missed" and full for "done", so
-         the raw channels are kept rather than only the css string. */
-      accentFaint: rgba(accent, 0.18),
+      accentFaint: rgba(accent, 0.12),
+      accentMid: rgba(accent, 0.42),
       onAccent: luminance(accent) > 0.6 ? '#000' : '#fff',
       shadow: dark ? 'rgba(0,0,0,.5)' : 'rgba(0,0,0,.18)',
+      cardShadow: declaredShadow || (dark ? '0 10px 28px rgba(0,0,0,.22)' : '0 1px 2px rgba(20,18,14,.04),0 8px 22px rgba(20,18,14,.05)'),
       danger: dark ? '#ff6961' : '#c0392b',
       warn: dark ? '#ffd60a' : '#a16207'
     };
@@ -20160,39 +20209,73 @@ const HABITS_CLIENT_SOURCE = (
       'padding:calc(24px + env(safe-area-inset-top)) 15px 0;}' +
     '.bar h2{margin:0;font-size:27px;font-weight:700;letter-spacing:-.03em;line-height:1.08;flex:1;}' +
     '.x{background:none;border:0;color:' + t.muted + ';font-size:26px;line-height:1;cursor:pointer;padding:4px 8px;}' +
-    '.tabs{display:flex;gap:6px;padding:18px 15px 4px;}' +
-    '.tab{flex:1;padding:8px;border:0;border-radius:' + t.radius + ';background:' + t.surface + ';' +
-      'color:' + t.muted + ';font-size:14px;font-weight:600;cursor:pointer;}' +
-    '.tab[aria-selected="true"]{background:' + t.accent + ';color:' + t.onAccent + ';}' +
-    '.body{padding:12px 15px;}' +
+    '.tabs{display:flex;gap:2px;margin:18px 15px 4px;padding:3px;border-radius:999px;background:' + t.soft + ';}' +
+    '.tab{flex:1;padding:9px 12px;border:0;border-radius:999px;background:transparent;' +
+      'color:' + t.muted + ';font-size:13px;font-weight:600;cursor:pointer;transition:background .16s,color .16s,box-shadow .16s;}' +
+    '.tab[aria-selected="true"]{background:' + t.surface + ';color:' + t.text + ';box-shadow:' + t.cardShadow + ';}' +
+    '.body{padding:14px 16px;width:min(100%,720px);margin:0 auto;}' +
     '.hint{color:' + t.muted + ';font-size:13px;line-height:1.45;margin:4px 0 16px;}' +
     '.warn{border:1px solid ' + t.warn + ';border-radius:' + t.radius + ';padding:10px 12px;margin:0 0 14px;' +
       'font-size:13px;line-height:1.45;color:' + t.text + ';}' +
     '.warn b{color:' + t.warn + ';}' +
 
     /* habit card */
-    '.card{border:1px solid ' + t.border + ';border-radius:' + t.radius + ';padding:14px;margin:0 0 12px;' +
-      'background:' + t.surface + ';}' +
-    '.top{display:flex;align-items:flex-start;gap:12px;}' +
-    '.emoji{font-size:26px;line-height:1.1;}' +
+    '.card{border:0;border-radius:' + t.cardRadius + ';padding:19px;margin:0 0 14px;' +
+      'background:' + t.surface + ';box-shadow:' + t.cardShadow + ';overflow:hidden;}' +
+    '.top{display:flex;align-items:center;gap:12px;}' +
+    '.emoji{flex:none;width:50px;height:50px;border-radius:18px;background:' + t.accentFaint + ';' +
+      'font-size:25px;line-height:1;display:grid;place-items:center;}' +
     '.who{flex:1;min-width:0;}' +
-    '.who h3{margin:0 0 3px;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}' +
+    '.who h3{margin:0 0 4px;font-size:18px;font-weight:700;letter-spacing:-.025em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}' +
     '.sub{color:' + t.muted + ';font-size:13px;margin:0;}' +
-    '.check{flex:none;width:46px;height:46px;border-radius:50%;border:2px solid ' + t.border + ';' +
+    '.check{flex:none;width:50px;height:50px;border-radius:50%;border:2px solid ' + t.border + ';' +
       'background:transparent;color:' + t.muted + ';font-size:20px;cursor:pointer;display:flex;' +
-      'align-items:center;justify-content:center;transition:background .12s,border-color .12s;}' +
-    '.check[aria-pressed="true"]{background:' + t.accent + ';border-color:' + t.accent + ';color:' + t.onAccent + ';}' +
+      'align-items:center;justify-content:center;transition:background .16s,border-color .16s,transform .12s,box-shadow .16s;}' +
+    '.check[aria-pressed="false"]:after{content:"";width:12px;height:12px;border-radius:50%;background:' + t.soft + ';}' +
+    '.check[aria-pressed="true"]{background:' + t.accent + ';border-color:' + t.accent + ';color:' + t.onAccent + ';' +
+      'box-shadow:0 7px 18px ' + t.accentMid + ';}' +
+    '.check:active:not([disabled]){transform:scale(.94);}' +
     '.check[disabled]{opacity:.45;cursor:default;}' +
-    '.stats{display:flex;gap:14px;margin:12px 0 0;flex-wrap:wrap;}' +
-    '.stat{font-size:12px;color:' + t.muted + ';}' +
-    '.stat b{display:block;font-size:17px;font-weight:700;color:' + t.text + ';line-height:1.25;}' +
+    '.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0 0;padding:0;}' +
+    '.stats[data-count="2"]{grid-template-columns:repeat(2,minmax(0,1fr));}' +
+    '.stat{min-width:0;padding:11px 10px;border-radius:14px;background:' + t.soft + ';font:500 8px/1.25 ' + t.mono + ';' +
+      'letter-spacing:.06em;text-transform:uppercase;color:' + t.muted + ';}' +
+    '.stat b{display:block;margin:0 0 3px;font:700 17px/1.2 ' + t.font + ';letter-spacing:-.025em;' +
+      'text-transform:none;color:' + t.text + ';font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
 
-    /* dot grid */
-    '.grid{display:grid;grid-template-columns:repeat(14,1fr);gap:3px;margin:12px 0 0;}' +
-    '.dot{aspect-ratio:1;border-radius:2px;background:' + t.accentFaint + ';}' +
-    '.dot[data-done="1"]{background:' + t.accent + ';}' +
-    '.dot[data-future="1"]{background:transparent;}' +
-    '.dot[data-today="1"]{outline:1.5px solid ' + t.text + ';outline-offset:1px;}' +
+    /* Contribution calendar: weeks run left-to-right; weekdays run downward. */
+    '.activity{position:relative;margin:18px 0 0;padding:17px 14px 13px;border-radius:20px;overflow:hidden;' +
+      'background:radial-gradient(circle at 100% 0%,' + t.accentFaint + ' 0,transparent 46%),' + t.soft + ';}' +
+    '.activity-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin:0 2px 15px;}' +
+    '.activity-kicker{display:block;margin:0 0 6px;font:500 9px/1 ' + t.mono + ';letter-spacing:.13em;' +
+      'text-transform:uppercase;color:' + t.muted + ';}' +
+    '.streak{display:flex;align-items:baseline;gap:7px;}' +
+    '.streak b{font-size:36px;line-height:.9;font-weight:700;letter-spacing:-.055em;font-variant-numeric:tabular-nums;}' +
+    '.streak span{font-size:14px;font-weight:600;color:' + t.muted + ';}' +
+    '.rate{padding:7px 10px;border-radius:999px;background:' + t.surface + ';font:500 9px/1.2 ' + t.mono + ';' +
+      'color:' + t.text + ';white-space:nowrap;font-variant-numeric:tabular-nums;box-shadow:inset 0 0 0 1px ' + t.border + ';}' +
+    '.matrix-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 9px;' +
+      'font-size:10px;color:' + t.muted + ';}' +
+    '.matrix-meta strong{font-size:11px;color:' + t.text + ';}' +
+    '.calendar{display:grid;grid-template-columns:16px max-content;grid-template-rows:12px auto;gap:6px 7px;justify-content:center;}' +
+    '.months{grid-column:2;display:grid;grid-template-columns:repeat(10,18px);column-gap:5px;min-width:0;}' +
+    '.month{font:500 8px/1 ' + t.mono + ';color:' + t.muted + ';text-transform:uppercase;overflow:visible;white-space:nowrap;}' +
+    '.weekdays{display:grid;grid-template-rows:repeat(7,18px);gap:5px;}' +
+    '.weekday{font:500 8px/18px ' + t.mono + ';color:' + t.muted + ';text-align:center;}' +
+    '.heatmap{display:grid;grid-template-columns:repeat(10,18px);column-gap:5px;min-width:0;}' +
+    '.week{display:grid;grid-template-rows:repeat(7,18px);gap:5px;}' +
+    '.cell{width:18px;height:18px;border-radius:5px;background:' + t.surface + ';box-shadow:inset 0 0 0 1px ' + t.border + ';}' +
+    '.cell[data-done="1"]{background:' + t.accent + ';box-shadow:inset 0 -2px 0 rgba(0,0,0,.08);}' +
+    /* Keep the whole contribution matrix visible. Fully transparent pre-start
+       cells made a new habit look like a broken two-column chart. */
+    '.cell[data-before="1"]{background:' + t.surface + ';box-shadow:inset 0 0 0 1px ' + t.border + ';opacity:.58;}' +
+    '.cell[data-future="1"]{background:' + t.surface + ';box-shadow:inset 0 0 0 1px ' + t.border + ';opacity:.4;}' +
+    '.cell[data-today="1"]{outline:2px solid ' + t.accent + ';outline-offset:2px;}' +
+    '.activity-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:11px 2px 0;' +
+      'font-size:9px;color:' + t.muted + ';}' +
+    '.legend{display:flex;align-items:center;gap:5px;white-space:nowrap;}' +
+    '.key{width:10px;height:10px;border-radius:3px;background:' + t.surface + ';box-shadow:inset 0 0 0 1px ' + t.border + ';}' +
+    '.key.done{background:' + t.accent + ';box-shadow:none;}' +
 
     /* per-habit controls */
     '.rows{margin:12px 0 0;border-top:1px solid ' + t.border + ';padding-top:10px;display:none;}' +
@@ -20215,7 +20298,12 @@ const HABITS_CLIENT_SOURCE = (
       'background:' + t.accent + ';color:' + t.onAccent + ';font-size:16px;font-weight:600;cursor:pointer;}' +
     '.go[disabled]{opacity:.5;}' +
     '.empty{color:' + t.muted + ';font-size:14px;text-align:center;padding:40px 20px;line-height:1.5;}' +
-    '.err{color:' + t.danger + ';font-size:13px;margin-top:12px;}';
+    '.err{color:' + t.danger + ';font-size:13px;margin-top:12px;}' +
+    '@media(max-width:360px){.card{padding:16px}.activity{padding-left:10px;padding-right:10px}' +
+      '.months,.heatmap{grid-template-columns:repeat(10,16px);column-gap:4px}.week{grid-template-rows:repeat(7,16px);gap:4px}' +
+      '.weekdays{grid-template-rows:repeat(7,16px);gap:4px}.weekday{line-height:16px}.cell{width:16px;height:16px}' +
+      '.streak b{font-size:33px}.rate{padding-left:8px;padding-right:8px}.stat{padding-left:8px;padding-right:8px}.stat b{font-size:15px}}' +
+    '@media(prefers-reduced-motion:reduce){.check,.tab{transition:none;}}';
   }
 
   /* ---------------------------------------------------------------- state */
@@ -20243,7 +20331,7 @@ const HABITS_CLIENT_SOURCE = (
 
     /*
      * Reminders go out over Telegram only. If the bot is not connected the times
-     * below are inert, and saying so here is the whole point \u2014 macroflow-kb.md
+     * below are inert, and saying so here is the whole point \u2014 jamtytrack-kb.md
      * \xA74 records exactly this failure once already: reminders configured, no
      * delivery channel, sent_reminders empty for weeks and nobody noticed.
      */
@@ -20318,16 +20406,16 @@ const HABITS_CLIENT_SOURCE = (
     top.appendChild(check);
     card.appendChild(top);
 
+    card.appendChild(buildActivity(habit));
+
     var stats = el('div', { class: 'stats' });
-    stats.appendChild(stat(plural(habit.streak, 'day'), 'streak'));
-    stats.appendChild(stat(String(habit.longestStreak), 'best'));
+    stats.appendChild(stat(plural(habit.longestStreak, 'day'), 'best streak'));
     stats.appendChild(stat(String(habit.totalDone), 'days done'));
     if (habit.totalValue > 0 && habit.unit) {
       stats.appendChild(stat(trim(habit.totalValue) + ' ' + habit.unit, 'total'));
     }
+    stats.setAttribute('data-count', String(stats.children.length));
     card.appendChild(stats);
-
-    card.appendChild(buildGrid(habit));
 
     var more = el('button', { class: 'more' }, openCards[habit.id] ? 'Hide settings' : 'Settings');
     more.addEventListener('click', function () {
@@ -20348,25 +20436,93 @@ const HABITS_CLIENT_SOURCE = (
   }
 
   /*
-   * GRID_DAYS cells ending on today, oldest first, so it reads left-to-right
-   * like a calendar. Days before the habit existed are drawn as future/empty
-   * rather than missed \u2014 showing a wall of red for days that were never on the
+   * Ten calendar weeks, oldest first, with weekdays running downward. Days
+   * before the habit existed are drawn as quiet/empty rather than missed. A
+   * wall of failure for days that were never on the
    * board is both wrong and discouraging.
    */
-  function buildGrid(habit) {
-    var grid = el('div', { class: 'grid', 'aria-hidden': 'true' });
+  function buildActivity(habit) {
+    var activity = el('section', { class: 'activity' });
     var done = {};
     habit.history.forEach(function (date) { done[date] = true; });
 
-    for (var offset = GRID_DAYS - 1; offset >= 0; offset--) {
-      var date = addDays(today, -offset);
-      var dot = el('div', { class: 'dot', title: fmtDate(date) });
-      if (done[date]) dot.setAttribute('data-done', '1');
-      else if (date < habit.startedOn) dot.setAttribute('data-future', '1');
-      if (date === today) dot.setAttribute('data-today', '1');
-      grid.appendChild(dot);
+    var currentWeek = addDays(today, -weekdayIndex(today));
+    var firstWeek = addDays(currentWeek, -(GRID_WEEKS - 1) * 7);
+    var eligible = 0;
+    var completed = 0;
+
+    var months = el('div', { class: 'months', 'aria-hidden': 'true' });
+    var heatmap = el('div', {
+      class: 'heatmap', role: 'img',
+      'aria-label': 'Habit activity over the last ten weeks'
+    });
+    var previousMonth = '';
+
+    for (var weekIndex = 0; weekIndex < GRID_WEEKS; weekIndex++) {
+      var weekStart = addDays(firstWeek, weekIndex * 7);
+      var month = fmtMonth(weekStart);
+      months.appendChild(el('span', { class: 'month' }, month !== previousMonth ? month : ''));
+      previousMonth = month;
+
+      var week = el('div', { class: 'week' });
+      for (var dayIndex = 0; dayIndex < 7; dayIndex++) {
+        var date = addDays(weekStart, dayIndex);
+        var cell = el('div', { class: 'cell', title: fmtDate(date) + (done[date] ? ' \xB7 done' : '') });
+        if (date < habit.startedOn) cell.setAttribute('data-before', '1');
+        else if (date > today) cell.setAttribute('data-future', '1');
+        else {
+          eligible++;
+          if (done[date]) {
+            completed++;
+            cell.setAttribute('data-done', '1');
+          }
+        }
+        if (date === today) cell.setAttribute('data-today', '1');
+        week.appendChild(cell);
+      }
+      heatmap.appendChild(week);
     }
-    return grid;
+
+    var percent = eligible ? Math.round(completed / eligible * 100) : 0;
+    heatmap.setAttribute('aria-label', completed + ' of ' + eligible + ' eligible days completed in the last ten weeks');
+
+    var head = el('div', { class: 'activity-head' });
+    var heading = el('div');
+    heading.appendChild(el('span', { class: 'activity-kicker' }, 'Current streak'));
+    var streak = el('div', { class: 'streak' });
+    streak.appendChild(el('b', null, String(habit.streak)));
+    streak.appendChild(el('span', null, habit.streak === 1 ? 'day strong' : 'days strong'));
+    heading.appendChild(streak);
+    head.appendChild(heading);
+    head.appendChild(el('span', { class: 'rate' }, percent + '% consistent'));
+    activity.appendChild(head);
+
+    var matrixMeta = el('div', { class: 'matrix-meta' });
+    matrixMeta.appendChild(el('strong', null, 'Last 10 weeks'));
+    matrixMeta.appendChild(el('span', null, completed + ' of ' + eligible + ' days'));
+    activity.appendChild(matrixMeta);
+
+    var calendar = el('div', { class: 'calendar' });
+    calendar.appendChild(months);
+    var weekdays = el('div', { class: 'weekdays', 'aria-hidden': 'true' });
+    ['M', '', 'W', '', 'F', '', 'S'].forEach(function (label) {
+      weekdays.appendChild(el('span', { class: 'weekday' }, label));
+    });
+    calendar.appendChild(weekdays);
+    calendar.appendChild(heatmap);
+    activity.appendChild(calendar);
+
+    var foot = el('div', { class: 'activity-foot' });
+    foot.appendChild(el('span', null, 'Since ' + fmtDate(habit.startedOn)));
+    var legend = el('span', { class: 'legend', 'aria-hidden': 'true' });
+    legend.appendChild(document.createTextNode('Missed'));
+    legend.appendChild(el('i', { class: 'key' }));
+    legend.appendChild(el('i', { class: 'key done' }));
+    legend.appendChild(document.createTextNode('Done'));
+    foot.appendChild(legend);
+    activity.appendChild(foot);
+
+    return activity;
   }
 
   function buildRows(habit) {
@@ -20930,35 +21086,35 @@ const HABITS_CLIENT_SOURCE = (
          highlight keeps lining up whatever the app's inset happens to be. */
       var pad = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
       navOverlays(nav).forEach(function (overlay) {
-        overlay.setAttribute('data-macroflow-navpill', '');
+        overlay.setAttribute('data-jamtytrack-navpill', '');
       });
 
-      nav.setAttribute('data-macroflow-grid', String(count));
-      var id = 'macroflow-nav-grid-' + count;
+      nav.setAttribute('data-jamtytrack-grid', String(count));
+      var id = 'jamtytrack-nav-grid-' + count;
       if (document.getElementById(id)) return;
       var gridStyle = document.createElement('style');
       gridStyle.id = id;
       gridStyle.textContent =
-        '[data-macroflow-grid="' + count + '"]{grid-template-columns:repeat(' + count + ',1fr) !important;}' +
-        '[data-macroflow-grid="' + count + '"] > [data-macroflow-navpill]{' +
+        '[data-jamtytrack-grid="' + count + '"]{grid-template-columns:repeat(' + count + ',1fr) !important;}' +
+        '[data-jamtytrack-grid="' + count + '"] > [data-jamtytrack-navpill]{' +
           'width:calc((100% - ' + pad + 'px) / ' + count + ') !important;}' +
-        '[data-macroflow-grid="' + count + '"] > * > span{max-width:100%;white-space:nowrap;' +
+        '[data-jamtytrack-grid="' + count + '"] > * > span{max-width:100%;white-space:nowrap;' +
           'overflow:hidden;text-overflow:ellipsis;}';
       document.head.appendChild(gridStyle);
       return;
     }
 
     if (nav.scrollWidth <= nav.clientWidth + 2) return;
-    nav.setAttribute('data-macroflow-fit', '1');
-    if (document.getElementById('macroflow-nav-fit')) return;
+    nav.setAttribute('data-jamtytrack-fit', '1');
+    if (document.getElementById('jamtytrack-nav-fit')) return;
 
     var flexStyle = document.createElement('style');
-    flexStyle.id = 'macroflow-nav-fit';
+    flexStyle.id = 'jamtytrack-nav-fit';
     flexStyle.textContent =
-      '[data-macroflow-fit]{gap:2px !important;column-gap:2px !important;}' +
-      '[data-macroflow-fit] > *{min-width:0 !important;flex:1 1 0 !important;' +
+      '[data-jamtytrack-fit]{gap:2px !important;column-gap:2px !important;}' +
+      '[data-jamtytrack-fit] > *{min-width:0 !important;flex:1 1 0 !important;' +
         'padding-left:3px !important;padding-right:3px !important;}' +
-      '[data-macroflow-fit] > * *{max-width:100%;white-space:nowrap;overflow:hidden;' +
+      '[data-jamtytrack-fit] > * *{max-width:100%;white-space:nowrap;overflow:hidden;' +
         'text-overflow:ellipsis;}';
     document.head.appendChild(flexStyle);
   }
@@ -21195,7 +21351,7 @@ function statusLine(habit) {
 }
 async function habitsSummary(env) {
   const habits = await listHabits(env);
-  if (!habits.length) return "No habits yet. Add one in Macroflow and it will show up here.";
+  if (!habits.length) return "No habits yet. Add one in Jamtytrack and it will show up here.";
   const remaining = habits.filter((habit) => !habit.doneToday).length;
   const footer = remaining ? `
 ${plural(remaining, "habit")} left today. Reply <code>/done</code> to check one off.` : "\nAll clear for today.";
@@ -21205,7 +21361,7 @@ ${habits.map(statusLine).join("\n\n")}
 ${footer}`;
 }
 function resolveHabit(habits, query) {
-  if (!habits.length) return { error: "No habits yet. Add one in Macroflow first." };
+  if (!habits.length) return { error: "No habits yet. Add one in Jamtytrack first." };
   if (!query) {
     if (habits.length === 1) return { habit: habits[0] };
     return {
@@ -21270,7 +21426,7 @@ async function todayLocalDate(env) {
   return dateInTimeZone(/* @__PURE__ */ new Date(), String(settings.timezone));
 }
 
-// ---- progress photos, source-compatible (rebuilt 2026-08-29) ----
+// ---- progress photos, source-compatible (rebuilt 2026-09-02) ----
 app.get("/progress-client.js", () => progressClientResponse());
 
 app.get("/api/progress/state", async (c) => {
@@ -21425,7 +21581,7 @@ app.get("/progress-photos/:key", async (c) => {
   });
 });
 
-// ---- habits (added 2026-08-29) ----
+// ---- habits (added 2026-09-02) ----
 app.get("/habits-client.js", () => habitsClientResponse());
 app.get("/api/habits", async (c) => {
   const settings = await getSettings(c.env);

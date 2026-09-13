@@ -9,7 +9,7 @@ output reflects what production actually does.
 Refresh the library snapshot first:
 
 ```bash
-CLOUDFLARE_ACCOUNT_ID=6c3b2df3d669fda007025e023ffee12c npx wrangler d1 execute macroflow --remote --json --command "SELECT id,name,aliases,calories,protein,carbs,fiber,fat FROM foods;" > tools/foods.json
+CLOUDFLARE_ACCOUNT_ID=6c3b2df3d669fda007025e023ffee12c npx wrangler d1 execute jamtytrack --remote --json --command "SELECT id,name,aliases,calories,protein,carbs,fiber,fat FROM foods;" > tools/foods.json
 ```
 
 | Script | Answers |

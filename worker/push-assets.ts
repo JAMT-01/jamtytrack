@@ -3,7 +3,7 @@
  * static files.
  *
  * Rationale: the frontend assets live in the `ASSETS` binding and there is no
- * local copy of that source (see macroflow-kb.md §9 — only the Worker bundle was
+ * local copy of that source (see jamtytrack-kb.md §9 — only the Worker bundle was
  * recovered). Serving these two scripts from the Worker and injecting the script
  * tag with HTMLRewriter means push works without touching the asset bundle at
  * all. If the frontend source is ever recovered, moving them into it is a
@@ -28,13 +28,13 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch (error) {
-    data = { title: 'MacroFlow', body: event.data ? event.data.text() : '' };
+    data = { title: 'Jamtytrack', body: event.data ? event.data.text() : '' };
   }
 
   // iOS drops the subscription if a push arrives and no notification is shown,
   // so this always shows something even when the payload is unusable.
   event.waitUntil(
-    self.registration.showNotification(data.title || 'MacroFlow', {
+    self.registration.showNotification(data.title || 'Jamtytrack', {
       body: data.body || '',
       tag: data.tag || undefined,
       // No icon: an installed iOS PWA uses its home-screen icon automatically,
@@ -74,7 +74,7 @@ export const CLIENT_SOURCE = /* javascript */ `
 (function () {
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
 
-  var DISMISS_KEY = 'macroflow.push.dismissed';
+  var DISMISS_KEY = 'jamtytrack.push.dismissed';
 
   var isApple = /iP(hone|ad|od)/.test(navigator.userAgent);
   var isStandalone =
@@ -199,7 +199,7 @@ export const CLIENT_SOURCE = /* javascript */ `
       try {
         await subscribe(registration);
       } catch (error) {
-        console.error('[macroflow] push subscribe failed', error);
+        console.error('[jamtytrack] push subscribe failed', error);
       }
     });
   }

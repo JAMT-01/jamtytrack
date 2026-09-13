@@ -1,4 +1,4 @@
-var COOKIE = "mf_session";
+var COOKIE = "jamtytrack_session";
 var SESSION_DAYS = 30;
 var MAX_FAILURES = 8;
 var LOCKOUT_MINUTES = 15;
@@ -9,7 +9,7 @@ __name(bytesToBase64Url, "bytesToBase64Url");
 async function signingKey(password) {
   return crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(`${password}::macroflow-session-v1`),
+    new TextEncoder().encode(`${password}::jamtytrack-session-v1`),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -89,7 +89,7 @@ function loginPage(options = { configured: true }) {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#172019" />
 <meta name="robots" content="noindex, nofollow" />
-<title>Macroflow</title>
+<title>Jamtytrack</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -117,7 +117,7 @@ function loginPage(options = { configured: true }) {
 <body>
   <form method="POST" action="/api/auth/login">
     <div class="mark">M</div>
-    <h1>Macroflow</h1>
+    <h1>Jamtytrack</h1>
     <p class="sub">Enter your passphrase to open the diary.</p>
     ${message}
     <label>Passphrase

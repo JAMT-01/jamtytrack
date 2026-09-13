@@ -12,7 +12,7 @@
 -- fallback when raising fibre causes GI trouble. Neither was in `foods`, so the
 -- model was being asked to recommend food the user could not then log.
 --
--- CONVENTION: macro columns are per 100 g (see macroflow-kb.md §3).
+-- CONVENTION: macro columns are per 100 g (see jamtytrack-kb.md §3).
 -- serving_grams is the scaling factor, NOT the basis of these numbers.
 --
 -- INVARIANT: fiber <= carbs. shared/analysis-core.ts clamps with

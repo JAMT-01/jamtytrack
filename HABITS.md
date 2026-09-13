@@ -1,6 +1,6 @@
 # Habits — daily streaks, and a Telegram reminder that answers back
 
-Habit tracking for MacroFlow: one tap a day, a streak, and a reminder over
+Habit tracking for Jamtytrack: one tap a day, a streak, and a reminder over
 Telegram you can reply `/done` to without opening the app.
 
 Built 2026-08-27 around the habit that prompted it — **walk 10 km**, day 1 on
@@ -69,8 +69,8 @@ Three pieces, each following a pattern already in the codebase:
   against assets built from the *other* fork, so there is no frontend on this
   branch to add a tab to. That is not the same as the frontend being unreadable:
   its source and a built copy are in the `source` worktree at
-  `C:/Users/agust/macroflow-app`, and injected UI **must** be tested against
-  `macroflow-app/dist` before deploying (§10). The palette is sampled from the
+  `C:/Users/agust/jamtytrack-app`, and injected UI **must** be tested against
+  `jamtytrack-app/dist` before deploying (§10). The palette is sampled from the
   running app at mount, so it follows the theme with no redeploy.
 
 ### The two constraints worth knowing
@@ -100,7 +100,7 @@ motivating. A streak is only broken once a full day has been missed.
 
 ```bash
 export CLOUDFLARE_ACCOUNT_ID=6c3b2df3d669fda007025e023ffee12c
-npx wrangler d1 execute macroflow --remote --file migrations/0008_habits.sql
+npx wrangler d1 execute jamtytrack --remote --file migrations/0008_habits.sql
 ```
 
 Applied directly rather than via `d1 migrations apply`, matching `0005`, `0006`
@@ -112,7 +112,7 @@ Done. `habits` and `habit_entries` exist with both named indexes
 (`habit_entries_habit_date`, `habit_entries_date`) and the three implicit ones
 from the PRIMARY KEY and UNIQUE constraints — confirmed by reading back
 `sqlite_master`. The database is now **16 tables**, not the 13 recorded in
-`macroflow-kb.md` §3 (that count also predates `photo_crypto`, which arrived
+`jamtytrack-kb.md` §3 (that count also predates `photo_crypto`, which arrived
 from the other fork — §8).
 
 It also seeds the walking habit and backfills **2026-08-26 only**. Today is
@@ -123,7 +123,7 @@ one is invisible and quietly corrupts the streak it was meant to measure.
 To undo, alongside a Worker rollback:
 
 ```bash
-npx wrangler d1 execute macroflow --remote --command "DROP TABLE habit_entries; DROP TABLE habits;"
+npx wrangler d1 execute jamtytrack --remote --command "DROP TABLE habit_entries; DROP TABLE habits;"
 ```
 
 > **Numbering collides with the `source` fork.** That branch has its own
@@ -142,7 +142,7 @@ dispatch for `/start`, `/today`, `/log` and `/help`. The webhook secret
 
 An earlier draft of this section said `telegram_bot_token` and
 `telegram_chat_id` were empty and `sent_reminders` had zero rows. **Both claims
-were wrong** — they were copied from `macroflow-kb.md` §4 instead of being read
+were wrong** — they were copied from `jamtytrack-kb.md` §4 instead of being read
 from the database. Checked 2026-08-28:
 
 - the token and chat id are **set**
@@ -370,7 +370,7 @@ binding, so a 401 does not exercise it at all.
 **Sign in and load the app.** If anything is wrong:
 
 ```bash
-npx wrangler rollback --name macroflow
+npx wrangler rollback --name jamtytrack
 ```
 
 Nothing in this deploy wrote to or deleted the asset store. The previous version
@@ -382,7 +382,7 @@ place, which is harmless — nothing else queries them.
 
 ## 8. The other fork
 
-`git worktree list` shows a second checkout at `C:/Users/agust/macroflow-app` on
+`git worktree list` shows a second checkout at `C:/Users/agust/jamtytrack-app` on
 branch **`source`** — a React + Vite rewrite of the same product, renamed
 Jamtytrack, with its own `worker/` and its own `0001`–`0005` migrations.
 `master` and `source` have **no common ancestor**; see
@@ -445,14 +445,14 @@ Scan a raised dark circle". That description was accurate on 2026-08-19 and is
 now stale: the carrot restyle on the `source` branch replaced that bar entirely.
 
 Meanwhile **the real frontend's source was in the repo the whole time** — the
-`source` worktree at `C:/Users/agust/macroflow-app`, with `src/components/Layout.tsx`,
+`source` worktree at `C:/Users/agust/jamtytrack-app`, with `src/components/Layout.tsx`,
 `src/styles.css`, and a **built copy in `dist/`** that can be served locally and
-driven in a browser. `macroflow-kb.md` §9 says the frontend is unreadable. It
-has not been true since 2026-08-20. See `macroflow-kb.md` §14.
+driven in a browser. `jamtytrack-kb.md` §9 says the frontend is unreadable. It
+has not been true since 2026-08-20. See `jamtytrack-kb.md` §14.
 
 ### The three failures
 
-Measured against `macroflow-app/dist`, not inferred:
+Measured against `jamtytrack-app/dist`, not inferred:
 
 | Failure | Cause |
 |---|---|
@@ -490,7 +490,7 @@ Both `worker/habits-assets.ts` and `worker/progress-assets.ts` now:
 
 ### Verified against the real built app
 
-`macroflow-app/dist` served locally with both clients injected, exactly as the
+`jamtytrack-app/dist` served locally with both clients injected, exactly as the
 Worker injects them:
 
 | Width | Result |

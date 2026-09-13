@@ -1,4 +1,4 @@
-# Web Push for MacroFlow — setup and wiring
+# Web Push for Jamtytrack — setup and wiring
 
 Written 2026-08-18. Adds iOS PWA push notifications so the app can prompt for the
 data it is missing — primarily the daily weigh-in.
@@ -59,14 +59,14 @@ The **private** key goes in a Worker secret — never in D1, never in a file in 
 synced folder:
 
 ```bash
-npx wrangler secret put VAPID_PRIVATE_KEY --name macroflow
+npx wrangler secret put VAPID_PRIVATE_KEY --name jamtytrack
 ```
 
 The **public** key is not secret (the browser receives it), so it lives in
 `app_secrets` alongside the OpenRouter credential. Substitute your value:
 
 ```bash
-npx wrangler d1 execute macroflow --remote --command "INSERT OR REPLACE INTO app_secrets (name, value, updated_at) VALUES ('vapid_public_key', 'PASTE_PUBLIC_KEY_HERE', CURRENT_TIMESTAMP), ('vapid_subject', 'mailto:agustinmontagner@gmail.com', CURRENT_TIMESTAMP);"
+npx wrangler d1 execute jamtytrack --remote --command "INSERT OR REPLACE INTO app_secrets (name, value, updated_at) VALUES ('vapid_public_key', 'PASTE_PUBLIC_KEY_HERE', CURRENT_TIMESTAMP), ('vapid_subject', 'mailto:agustinmontagner@gmail.com', CURRENT_TIMESTAMP);"
 ```
 
 `vapid_subject` is required by RFC 8292 — push services use it to contact you if
@@ -154,7 +154,7 @@ app.post('/api/push/unsubscribe', async (c) => {
 // Fires immediately — do not wait for a cron slot to find out it works.
 app.post('/api/push/test', async (c) => {
   const results = await sendPushToAll(c.env, {
-    title: '✅ MacroFlow',
+    title: '✅ Jamtytrack',
     body: 'Notifications are working.',
     url: '/',
     tag: 'test',
@@ -190,7 +190,7 @@ stricter than on desktop:
 | **Permission from a user gesture** | `Notification.requestPermission()` called on page load is ignored. It is attached to the Enable button. |
 | **A notification shown for every push** | iOS revokes the subscription for silent pushes. The service worker always calls `showNotification`, even on an unparseable payload. |
 | **`userVisibleOnly: true`** | Subscription is rejected without it. Set in the client. |
-| **HTTPS** | Already satisfied — `macro.montagnertudor.org`. |
+| **HTTPS** | Already satisfied — `jamtytrack.montagnertudor.org`. |
 | **Denial is terminal** | Once denied, the page cannot re-prompt; only iOS Settings → Notifications can reset it. The client shows nothing rather than a dead button. **Do not tap "Don't Allow" while testing.** |
 
 The app is already installed on your Home Screen, so the manifest and
@@ -227,7 +227,7 @@ genuinely outstanding.
 4. Confirm the device registered:
 
 ```bash
-npx wrangler d1 execute macroflow --remote --command "SELECT id, substr(endpoint,1,45) AS endpoint, created_at FROM push_subscriptions;"
+npx wrangler d1 execute jamtytrack --remote --command "SELECT id, substr(endpoint,1,45) AS endpoint, created_at FROM push_subscriptions;"
 ```
 
 5. Fire a test notification without waiting for a cron slot — from the PWA, so
@@ -240,7 +240,7 @@ await fetch('/api/push/test', { method: 'POST', credentials: 'same-origin' }).th
 6. Watch a real reminder fire:
 
 ```bash
-npx wrangler tail macroflow
+npx wrangler tail jamtytrack
 ```
 
 ### If nothing arrives

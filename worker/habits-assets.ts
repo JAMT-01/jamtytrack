@@ -3,7 +3,7 @@
  *
  * Same rationale as worker/progress-assets.ts and worker/push-assets.ts: the
  * frontend lives in the `ASSETS` binding and there is no local copy of that
- * source (macroflow-kb.md §9), so a feature that needs UI has to bring its own.
+ * source (jamtytrack-kb.md §9), so a feature that needs UI has to bring its own.
  * Everything renders into a shadow root and the palette is sampled from the
  * running app at mount, so this follows the app's theme without a redeploy.
  *
@@ -41,7 +41,7 @@
 export const HABITS_CLIENT_SOURCE = /* javascript */ `
 'use strict';
 (function () {
-  var NAV_FLAG = 'data-macroflow-habits-nav';
+  var NAV_FLAG = 'data-jamtytrack-habits-nav';
 
   /* Ten weeks of dots: long enough to show a habit taking hold, short enough to
      stay one glance rather than a chart. Matches HISTORY_DAYS in worker/habits.ts. */
@@ -333,7 +333,7 @@ export const HABITS_CLIENT_SOURCE = /* javascript */ `
 
     /*
      * Reminders go out over Telegram only. If the bot is not connected the times
-     * below are inert, and saying so here is the whole point — macroflow-kb.md
+     * below are inert, and saying so here is the whole point — jamtytrack-kb.md
      * §4 records exactly this failure once already: reminders configured, no
      * delivery channel, sent_reminders empty for weeks and nobody noticed.
      */
@@ -1020,35 +1020,35 @@ export const HABITS_CLIENT_SOURCE = /* javascript */ `
          highlight keeps lining up whatever the app's inset happens to be. */
       var pad = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
       navOverlays(nav).forEach(function (overlay) {
-        overlay.setAttribute('data-macroflow-navpill', '');
+        overlay.setAttribute('data-jamtytrack-navpill', '');
       });
 
-      nav.setAttribute('data-macroflow-grid', String(count));
-      var id = 'macroflow-nav-grid-' + count;
+      nav.setAttribute('data-jamtytrack-grid', String(count));
+      var id = 'jamtytrack-nav-grid-' + count;
       if (document.getElementById(id)) return;
       var gridStyle = document.createElement('style');
       gridStyle.id = id;
       gridStyle.textContent =
-        '[data-macroflow-grid="' + count + '"]{grid-template-columns:repeat(' + count + ',1fr) !important;}' +
-        '[data-macroflow-grid="' + count + '"] > [data-macroflow-navpill]{' +
+        '[data-jamtytrack-grid="' + count + '"]{grid-template-columns:repeat(' + count + ',1fr) !important;}' +
+        '[data-jamtytrack-grid="' + count + '"] > [data-jamtytrack-navpill]{' +
           'width:calc((100% - ' + pad + 'px) / ' + count + ') !important;}' +
-        '[data-macroflow-grid="' + count + '"] > * > span{max-width:100%;white-space:nowrap;' +
+        '[data-jamtytrack-grid="' + count + '"] > * > span{max-width:100%;white-space:nowrap;' +
           'overflow:hidden;text-overflow:ellipsis;}';
       document.head.appendChild(gridStyle);
       return;
     }
 
     if (nav.scrollWidth <= nav.clientWidth + 2) return;
-    nav.setAttribute('data-macroflow-fit', '1');
-    if (document.getElementById('macroflow-nav-fit')) return;
+    nav.setAttribute('data-jamtytrack-fit', '1');
+    if (document.getElementById('jamtytrack-nav-fit')) return;
 
     var flexStyle = document.createElement('style');
-    flexStyle.id = 'macroflow-nav-fit';
+    flexStyle.id = 'jamtytrack-nav-fit';
     flexStyle.textContent =
-      '[data-macroflow-fit]{gap:2px !important;column-gap:2px !important;}' +
-      '[data-macroflow-fit] > *{min-width:0 !important;flex:1 1 0 !important;' +
+      '[data-jamtytrack-fit]{gap:2px !important;column-gap:2px !important;}' +
+      '[data-jamtytrack-fit] > *{min-width:0 !important;flex:1 1 0 !important;' +
         'padding-left:3px !important;padding-right:3px !important;}' +
-      '[data-macroflow-fit] > * *{max-width:100%;white-space:nowrap;overflow:hidden;' +
+      '[data-jamtytrack-fit] > * *{max-width:100%;white-space:nowrap;overflow:hidden;' +
         'text-overflow:ellipsis;}';
     document.head.appendChild(flexStyle);
   }

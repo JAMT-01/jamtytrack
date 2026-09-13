@@ -11,7 +11,7 @@ app.use("*", async (c, next) => {
   const path = new URL(c.req.url).pathname;
   if (PUBLIC_PATHS.has(path)) return next();
   if (!password) {
-    if (path.startsWith("/api/")) return c.json({ error: "This Macroflow has no passphrase configured yet." }, 503);
+    if (path.startsWith("/api/")) return c.json({ error: "This Jamtytrack has no passphrase configured yet." }, 503);
     return c.html(loginPage({ configured: false }), 503);
   }
   if (await hasValidSession(c.req.raw, password)) return next();
@@ -429,7 +429,7 @@ app.post("/api/weight", async (c) => {
 });
 app.post("/api/telegram/test", async (c) => {
   const { sendTelegramMessage: sendTelegramMessage2 } = await Promise.resolve().then(() => (init_telegram(), telegram_exports));
-  await sendTelegramMessage2(c.env, "\u2705 <b>Macroflow is connected.</b> Your Cloudflare Worker reminder service is working.");
+  await sendTelegramMessage2(c.env, "\u2705 <b>Jamtytrack is connected.</b> Your Cloudflare Worker reminder service is working.");
   return c.json({ ok: true });
 });
 app.post("/api/telegram/webhook/register", async (c) => {
@@ -458,7 +458,7 @@ app.get("/api/export", async (c) => {
     weights: weights.results ?? [],
     mealMemories: memories.results ?? []
   }, 200, {
-    "content-disposition": `attachment; filename=macroflow-export-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json`
+    "content-disposition": `attachment; filename=jamtytrack-export-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json`
   });
 });
 app.get("/uploads/:key", async (c) => {

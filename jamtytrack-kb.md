@@ -1,4 +1,4 @@
-# MacroFlow — Knowledge Base
+# Jamtytrack — Knowledge Base
 
 > Reconstructed entirely from live Cloudflare state via `wrangler` on **2026-08-18**.
 > There is **no local source checkout** — the deployed Worker is currently the only copy of the code.
@@ -11,7 +11,7 @@ A single-user **macro / nutrition tracker** deployed as one Cloudflare Worker. Y
 
 Everything — API, cron, and frontend — is served from **one Worker** with static assets bound in. There is no separate Pages project.
 
-**Live at:** https://macro.montagnertudor.org (returns `HTTP 401` until you pass the password gate — confirmed responding)
+**Live at:** https://jamtytrack.montagnertudor.org (returns `HTTP 401` until you pass the password gate — confirmed responding)
 
 ---
 
@@ -23,9 +23,9 @@ The second account on the token, `Nilasero60@gmail.com's Account` / `b698d1a7dab
 
 | Resource | Type | ID |
 |---|---|---|
-| `macroflow` | Worker | — |
-| `macroflow` | D1 database | `978a69cc-f981-4fa8-a136-c67b556bb643` |
-| `PHOTOS` | KV namespace | `cafdcdcb096c4b23b5978317a08a0fa1` |
+| `jamtytrack` | Worker | — |
+| `jamtytrack` | D1 database | `4fa3290f-cf68-410a-840e-8fb3a22561c2` |
+| `jamtytrack-photos` (binding `PHOTOS`) | KV namespace | `cafdcdcb096c4b23b5978317a08a0fa1` |
 
 R2 is **not enabled** on this account (API error 10042).
 
@@ -40,10 +40,10 @@ R2 is **not enabled** on this account (API error 10042).
 
 | Binding | Resource |
 |---|---|
-| `env.DB` | D1 → `macroflow` |
+| `env.DB` | D1 → `jamtytrack` |
 | `env.PHOTOS` | KV → `cafdcdcb096c4b23b5978317a08a0fa1` |
 | `env.ASSETS` | Static assets (the frontend) |
-| `env.APP_URL` | Var → `https://jamtytrack.montagnertudor.org` — corrected 2026-08-21; it had said `https://macro.montagnertudor.org`, but that name has no DNS record (NXDOMAIN). The Worker's real custom domain is `jamtytrack.*` |
+| `env.APP_URL` | Var → `https://jamtytrack.montagnertudor.org` — corrected 2026-08-21 from an obsolete hostname with no DNS record. |
 
 ### Secrets (Worker-level)
 
@@ -57,15 +57,15 @@ Note the duplication: an OpenRouter key **also** lives in the D1 `app_secrets` t
 
 ```jsonc
 {
-  "name": "macroflow",
+  "name": "jamtytrack",
   "main": "worker/index.ts",   // confirmed from the recovered bundle — there is no src/
   "compatibility_date": "2026-08-13",
   "compatibility_flags": ["nodejs_compat"],
   "assets": { "binding": "ASSETS" },
   "vars": { "APP_URL": "https://jamtytrack.montagnertudor.org" },
   "d1_databases": [
-    { "binding": "DB", "database_name": "macroflow",
-      "database_id": "978a69cc-f981-4fa8-a136-c67b556bb643" }
+    { "binding": "DB", "database_name": "jamtytrack",
+      "database_id": "4fa3290f-cf68-410a-840e-8fb3a22561c2" }
   ],
   "kv_namespaces": [
     { "binding": "PHOTOS", "id": "cafdcdcb096c4b23b5978317a08a0fa1" }
@@ -77,7 +77,7 @@ Note the duplication: an OpenRouter key **also** lives in the D1 `app_secrets` t
 **The cron runs every minute.** `wrangler` cannot show this, but the REST API can:
 
 ```bash
-curl -H "Authorization: Bearer $CF_API_TOKEN"   "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/macroflow/schedules"
+curl -H "Authorization: Bearer $CF_API_TOKEN"   "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/jamtytrack/schedules"
 ```
 
 That is 1,440 invocations a day, currently all no-ops — the reminder path has no
@@ -87,7 +87,7 @@ on time, so it is defensible, but nothing is using it yet.
 
 ---
 
-## 3. Data model (D1 `macroflow`)
+## 3. Data model (D1 `jamtytrack`)
 
 10 tables, ~123 kB, created `2026-08-13T23:12:28Z`, region ENAM, read replication disabled.
 
@@ -326,31 +326,31 @@ export CLOUDFLARE_ACCOUNT_ID=6c3b2df3d669fda007025e023ffee12c
 Query the database:
 
 ```bash
-npx wrangler d1 execute macroflow --remote --command "SELECT * FROM settings WHERE id=1;"
+npx wrangler d1 execute jamtytrack --remote --command "SELECT * FROM settings WHERE id=1;"
 ```
 
 Inspect database health and usage:
 
 ```bash
-npx wrangler d1 info macroflow
+npx wrangler d1 info jamtytrack
 ```
 
 Watch live logs, useful for debugging the cron:
 
 ```bash
-npx wrangler tail macroflow
+npx wrangler tail jamtytrack
 ```
 
 Review deploy history:
 
 ```bash
-npx wrangler versions list --name macroflow
+npx wrangler versions list --name jamtytrack
 ```
 
 Roll back to the previous version:
 
 ```bash
-npx wrangler rollback --name macroflow
+npx wrangler rollback --name jamtytrack
 ```
 
 Credentials live at `C:\Users\agust\AppData\Roaming\xdg.config\.wrangler\config\default.toml` (OAuth, `agustinmontagner@gmail.com`).
@@ -386,7 +386,7 @@ Prior research lives at `Proyectos/Apps-Agentes/macros app/macro-app-research.md
 - **LiDAR from a website is impossible on iOS.** Safari has no WebXR on iOS/iPadOS through 26.5, and there is no raw LiDAR API even natively. The fallback the doc recommends — monocular depth estimation with a scale reference in frame (a credit card, a coin, a plate of known diameter) — is why `settings.plate_diameter_cm` exists.
 - **Data sources evaluated:** USDA FoodData Central (CC0), USDA FNDDS, FAO/INFOODS density DB, Open Food Facts (ODbL), ARGENFOODS.
 - **FOSS prior art:** OpenNutriTracker, SparkyFitness, Waistline, FoodYou. Three of the four are GPL-3.0, so their code cannot go into a closed-source app. The data sources are reusable; the code is not.
-- **The identified gap:** photo recognition is the one durable advantage closed-source trackers still hold over FOSS ones. MacroFlow targets exactly that gap.
+- **The identified gap:** photo recognition is the one durable advantage closed-source trackers still hold over FOSS ones. Jamtytrack targets exactly that gap.
 
 ---
 
@@ -401,7 +401,7 @@ this look impossible. **A different endpoint accepts the same token:**
 
 ```bash
 TOKEN=$(grep '^oauth_token'   "$APPDATA/xdg.config/.wrangler/config/default.toml" | sed 's/.*= *"//; s/"//')
-curl -H "Authorization: Bearer $TOKEN"   "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/macroflow/environments/production/content"
+curl -H "Authorization: Bearer $TOKEN"   "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/jamtytrack/environments/production/content"
 ```
 
 It returns `multipart/form-data`; the `index.js` part is the deployed bundle
@@ -428,7 +428,7 @@ rewrite reference rather than a buildable tree. The frontend is served via the
 
 **Do not** use `wrangler init --from-dash <name> -y`. The `-y` skips the download
 and scaffolds a hello-world project whose `wrangler.jsonc` carries
-`name: macroflow` — deploying it would overwrite the live Worker.
+`name: jamtytrack` — deploying it would overwrite the live Worker.
 
 The scheduled handler as deployed:
 
@@ -490,7 +490,7 @@ is verified over a 400-day sweep including ISO-week year boundaries
 minerals at all**. "What am I lacking" in the usual sense (iron, B12, vitamin D,
 calcium, zinc, omega-3) is therefore not computable from this schema.
 
-Current approach follows what `macros.md` §8 already concluded — *"a photo app
+Current approach follows what `jamtytrack.md` §8 already concluded — *"a photo app
 estimates macros reasonably and micros poorly; handle these with food rules rather
 than daily numbers."* So the prompt explicitly forbids estimating mg/IU intakes
 and instead asks whether the logged food met the user's own baseline rule (2 fruit,
@@ -544,7 +544,7 @@ runs the new code, because the OpenRouter key is a Worker secret and an
 
 ### Note on source recovery
 
-`GET /workers/scripts/macroflow/content` **rejects wrangler's OAuth token** with
+`GET /workers/scripts/jamtytrack/content` **rejects wrangler's OAuth token** with
 `10405 Method not allowed for this authentication scheme`. It needs a
 dashboard-created API token with Workers Scripts:Read, or use the dashboard's
 Quick Edit.
@@ -554,7 +554,7 @@ Quick Edit.
 ## 11. Progress photos (written 2026-08-19, not deployed)
 
 Body progress photos — capture, timeline, and a same-pose before/after with the
-bodyweight delta. Fills the one row of `macros.md` §10 that had nowhere to go:
+bodyweight delta. Fills the one row of `jamtytrack.md` §10 that had nowhere to go:
 *Photos — every 4 weeks — same light, pose, time of day*.
 
 Full detail in **`PROGRESS-PHOTOS.md`**. Summary:
@@ -720,7 +720,7 @@ exceptions on the new version.
 
 Not verified, and unverifiable from here: anything behind the password gate —
 that the Habits tab renders in the real nav, and that the frontend still renders
-at all. Sign in and look. Rollback is `npx wrangler rollback --name macroflow`;
+at all. Sign in and look. Rollback is `npx wrangler rollback --name jamtytrack`;
 the previous version is `b5c627fe-431a-44ae-86e7-3fc6a55f370e`.
 
 The deployment history in §7 is stale from version 15 onward. Live versions
@@ -731,7 +731,7 @@ Telegram uploads, now `66468e1a` (habits).
 
 ## 13. There are two forks, and production runs this one
 
-`git worktree list` shows a second checkout at `C:/Users/agust/macroflow-app` on
+`git worktree list` shows a second checkout at `C:/Users/agust/jamtytrack-app` on
 branch **`source`** — a React + Vite rewrite renamed **Jamtytrack**, with its own
 `worker/`, its own `0001`–`0005` migrations, photo encryption, onboarding and a
 benchmark lab. `master` and `source` have **no common ancestor**. The runbook
@@ -772,15 +772,15 @@ therefore has to infer the app's markup. That was true when written. It is not
 true now, and building on it broke the nav twice.
 
 **The deployed frontend's source is in this repo**, on the `source` branch,
-checked out at `C:/Users/agust/macroflow-app`:
+checked out at `C:/Users/agust/jamtytrack-app`:
 
 | What | Where |
 |---|---|
-| The nav component | `macroflow-app/src/components/Layout.tsx` |
-| Its CSS | `macroflow-app/src/styles.css` (mobile bar at `@media (max-width: 760px)`) |
-| The **built** app, as deployed | `macroflow-app/dist/` (built 2026-08-20 19:46) |
+| The nav component | `jamtytrack-app/src/components/Layout.tsx` |
+| Its CSS | `jamtytrack-app/src/styles.css` (mobile bar at `@media (max-width: 760px)`) |
+| The **built** app, as deployed | `jamtytrack-app/dist/` (built 2026-08-20 19:46) |
 
-`macroflow-app/dist` can be served locally and driven in a browser. That is a
+`jamtytrack-app/dist` can be served locally and driven in a browser. That is a
 faithful test host, and it takes about a minute to set up. **Use it.** Anything
 injected into the app should be checked against it before deploying.
 
@@ -825,7 +825,7 @@ screenshot it came from (2026-08-19) and is **stale**: the carrot restyle on
 - fall back to the floating button when the item lands somewhere invisible, and
   re-check on resize, since the 760px breakpoint swaps the bar for a sidebar
 
-Verified against `macroflow-app/dist` at 320, 375, 390, 414, 430, 760 and
+Verified against `jamtytrack-app/dist` at 320, 375, 390, 414, 430, 760 and
 1200 px: one capture button, five tabs on one row, none outside the bar, the
 pill aligned under each of the four native tabs, no horizontal scroll, and the
 sidebar layout untouched on desktop.
@@ -892,7 +892,7 @@ photos feature, which is what surfaced the real breakage.
   `APP_PASSWORD` (there is no `PHOTO_PASSPHRASE` binding today, so it is the app
   passphrase that signs the unlock cookie)
 - `createUnlockCookie` / `photoUnlockExpiry` / `clearUnlockCookie` — a separate
-  HMAC-signed `mf_photos` cookie keyed `::macroflow-photos-v1`, distinct from the
+  HMAC-signed `jamtytrack_photos` cookie keyed `::jamtytrack-photos-v1`, distinct from the
   session key so one can never be mistaken for the other; 3-minute window
 - `isGloballyLockedOut` / `recordGlobalFailure` / `clearGlobalFailures` — the
   cross-IP cap that is what actually bounds a short PIN

@@ -33,7 +33,7 @@ interface Env {
   PHOTO_PASSPHRASE?: string;
 }
 
-const UNLOCK_COOKIE = 'mf_photos';
+const UNLOCK_COOKIE = 'jamtytrack_photos';
 const UNLOCK_MINUTES = 3;
 
 /*
@@ -66,7 +66,7 @@ export function hasSeparatePhotoSecret(env: Env): boolean {
 async function signUnlock(password: string, payload: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(`${password}::macroflow-photos-v1`),
+    new TextEncoder().encode(`${password}::jamtytrack-photos-v1`),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']

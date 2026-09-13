@@ -2,7 +2,7 @@
  * The progress-photo UI, served as a Worker route rather than a static file.
  *
  * Rationale is the same as worker/push-assets.ts: the frontend lives in the
- * `ASSETS` binding and there is no local copy of that source (macroflow-kb.md
+ * `ASSETS` binding and there is no local copy of that source (jamtytrack-kb.md
  * §9 — only the Worker bundle was recovered). Serving this script from the
  * Worker and injecting the tag with HTMLRewriter adds the feature without
  * touching the asset bundle. When the frontend source is recovered, moving this
@@ -86,7 +86,7 @@ export const PROGRESS_CLIENT_SOURCE = /* javascript */ `
    * The first version of this shipped a fixed iOS-dark palette. settings.theme
    * is 'light', so it clashed badly. Guessing a second time would be the same
    * mistake, and there is still no local copy of the frontend to match against
-   * (macroflow-kb.md §9) -- so instead of guessing, this samples the live page
+   * (jamtytrack-kb.md §9) -- so instead of guessing, this samples the live page
    * for its background, text colour, accent, radius and font, and builds the
    * stylesheet from what it finds.
    *
@@ -540,7 +540,7 @@ export const PROGRESS_CLIENT_SOURCE = /* javascript */ `
 
   /* ---------------------------------------------------------------- nav bar */
 
-  var NAV_FLAG = 'data-macroflow-progress';
+  var NAV_FLAG = 'data-jamtytrack-progress';
 
   /* Outline camera. Inherits currentColor, so it picks up the nav's own icon
      colour including the active/inactive states. */
@@ -553,7 +553,7 @@ export const PROGRESS_CLIENT_SOURCE = /* javascript */ `
 
   /*
    * Locate the app's nav. Nothing about the frontend's markup is known here
-   * (macroflow-kb.md §9), so this scores candidates instead of matching a
+   * (jamtytrack-kb.md §9), so this scores candidates instead of matching a
    * selector: wide, short, more than one control, and preferably fixed or
    * stuck to the bottom of the viewport.
    */
@@ -749,35 +749,35 @@ export const PROGRESS_CLIENT_SOURCE = /* javascript */ `
 
       var pad = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
       navOverlays(nav).forEach(function (overlay) {
-        overlay.setAttribute('data-macroflow-navpill', '');
+        overlay.setAttribute('data-jamtytrack-navpill', '');
       });
 
-      nav.setAttribute('data-macroflow-grid', String(count));
-      var id = 'macroflow-nav-grid-' + count;
+      nav.setAttribute('data-jamtytrack-grid', String(count));
+      var id = 'jamtytrack-nav-grid-' + count;
       if (document.getElementById(id)) return;
       var gridStyle = document.createElement('style');
       gridStyle.id = id;
       gridStyle.textContent =
-        '[data-macroflow-grid="' + count + '"]{grid-template-columns:repeat(' + count + ',1fr) !important;}' +
-        '[data-macroflow-grid="' + count + '"] > [data-macroflow-navpill]{' +
+        '[data-jamtytrack-grid="' + count + '"]{grid-template-columns:repeat(' + count + ',1fr) !important;}' +
+        '[data-jamtytrack-grid="' + count + '"] > [data-jamtytrack-navpill]{' +
           'width:calc((100% - ' + pad + 'px) / ' + count + ') !important;}' +
-        '[data-macroflow-grid="' + count + '"] > * > span{max-width:100%;white-space:nowrap;' +
+        '[data-jamtytrack-grid="' + count + '"] > * > span{max-width:100%;white-space:nowrap;' +
           'overflow:hidden;text-overflow:ellipsis;}';
       document.head.appendChild(gridStyle);
       return;
     }
 
     if (nav.scrollWidth <= nav.clientWidth + 2) return;
-    nav.setAttribute('data-macroflow-fit', '1');
-    if (document.getElementById('macroflow-nav-fit')) return;
+    nav.setAttribute('data-jamtytrack-fit', '1');
+    if (document.getElementById('jamtytrack-nav-fit')) return;
 
     var flexStyle = document.createElement('style');
-    flexStyle.id = 'macroflow-nav-fit';
+    flexStyle.id = 'jamtytrack-nav-fit';
     flexStyle.textContent =
-      '[data-macroflow-fit]{gap:2px !important;column-gap:2px !important;}' +
-      '[data-macroflow-fit] > *{min-width:0 !important;flex:1 1 0 !important;' +
+      '[data-jamtytrack-fit]{gap:2px !important;column-gap:2px !important;}' +
+      '[data-jamtytrack-fit] > *{min-width:0 !important;flex:1 1 0 !important;' +
         'padding-left:3px !important;padding-right:3px !important;}' +
-      '[data-macroflow-fit] > * *{max-width:100%;white-space:nowrap;overflow:hidden;' +
+      '[data-jamtytrack-fit] > * *{max-width:100%;white-space:nowrap;overflow:hidden;' +
         'text-overflow:ellipsis;}';
     document.head.appendChild(flexStyle);
   }

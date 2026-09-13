@@ -21,10 +21,10 @@ import { listHabits, checkIn, undoCheckIn, type Habit } from './habits';
  * on this channel rather than a banner.
  *
  * WHAT IS REUSED, DELIBERATELY:
- *   * the existing every-minute cron — no new trigger (macroflow-kb.md §2)
+ *   * the existing every-minute cron — no new trigger (jamtytrack-kb.md §2)
  *   * `sent_reminders` and its UNIQUE(reminder_key) index, as the once-only
  *     claim, exactly as meal reminders and scheduled reports already use it
- *   * `sendTelegramMessage`, which already carries the "Open Macroflow" button
+ *   * `sendTelegramMessage`, which already carries the "Open Jamtytrack" button
  */
 
 interface Env {
@@ -173,7 +173,7 @@ function statusLine(habit: Habit): string {
 
 export async function habitsSummary(env: Env): Promise<string> {
   const habits = await listHabits(env);
-  if (!habits.length) return 'No habits yet. Add one in Macroflow and it will show up here.';
+  if (!habits.length) return 'No habits yet. Add one in Jamtytrack and it will show up here.';
 
   const remaining = habits.filter((habit) => !habit.doneToday).length;
   const footer = remaining
@@ -193,7 +193,7 @@ export async function habitsSummary(env: Env): Promise<string> {
  * streaks at once.
  */
 function resolveHabit(habits: Habit[], query: string): { habit?: Habit; error?: string } {
-  if (!habits.length) return { error: 'No habits yet. Add one in Macroflow first.' };
+  if (!habits.length) return { error: 'No habits yet. Add one in Jamtytrack first.' };
 
   if (!query) {
     if (habits.length === 1) return { habit: habits[0] };

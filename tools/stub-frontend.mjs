@@ -1,5 +1,5 @@
 /**
- * Serves the real built Jamtytrack frontend (macroflow-app/dist) against a stub
+ * Serves the real built Jamtytrack frontend (../jamtytrack/dist) against a stub
  * API that mirrors the SHAPES observed in production D1/KV on 2026-08-29:
  *
  *   - photo_crypto row EXISTS  -> encryption.configured = true
@@ -16,8 +16,9 @@
 import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { extname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const DIST = process.env.JAMTY_DIST || 'C:/Users/agust/macroflow-app/dist';
+const DIST = process.env.JAMTYTRACK_DIST || fileURLToPath(new URL('../../jamtytrack/dist/', import.meta.url));
 const CLIENT = process.argv[3]; // optional path to progress-client.js
 const HABITS = process.argv[4]; // optional path to habits-client.js
 const PORT = Number(process.argv[2] || 8141);
@@ -127,7 +128,7 @@ createServer(async (req, res) => {
       totals: { calories: 0, protein: 0, carbs: 0, fiber: 0, fat: 0 }, meals: [] });
     if (path === '/api/progress/state') return json(res, {
       unlocked, unlockMinutes: 15, expiresAt: unlocked ? Date.now() + 900000 : null,
-      separateSecret: process.env.JAMTY_SEPARATE === '1', encryption: { configured: true, salt: 'c2FsdHNhbHRzYWx0c2FsdA==' } });
+      separateSecret: process.env.JAMTYTRACK_SEPARATE === '1', encryption: { configured: true, salt: 'c2FsdHNhbHRzYWx0c2FsdA==' } });
     if (path === '/api/progress/unlock') { unlocked = true; return json(res, { unlocked: true, unlockMinutes: 15, expiresAt: Date.now() + 900000, wrappedKey: 'd3JhcHBlZGtleQ==' }); }
     if (path === '/api/progress/lock') { unlocked = false; return json(res, { unlocked: false }); }
     if (path === '/api/progress') {

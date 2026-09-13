@@ -10,7 +10,7 @@
 ## 1. The Dashboard — Daily Targets
 
 
-These are **live in MacroFlow** as of 2026-08-18 — the app and this document agree.
+These are **live in Jamtytrack** as of 2026-08-18 — the app and this document agree.
 
 | Metric | Live target | Evidence range | Hard floor | Why it matters |
 |---|---|---|---|---|
@@ -169,7 +169,7 @@ The accepted adequate intake is **14 g per 1,000 kcal**, which is where the stan
 
 **Practical target: 43 g/day. Floor: 30 g.** Don't chase 50 g+ — no added benefit, and it actively works against you (see below).
 
-> **This was the single biggest gap between the research and your app.** MacroFlow was set to a 30 g fiber target — a generic default, below even the 38 g baseline for adult men, and 13 g under what your calorie intake calls for. It has been corrected to 43 g. If your logged average has been landing near 30 g and reading as "on target," it was actually about 70% of where it should be.
+> **This was the single biggest gap between the research and your app.** Jamtytrack was set to a 30 g fiber target — a generic default, below even the 38 g baseline for adult men, and 13 g under what your calorie intake calls for. It has been corrected to 43 g. If your logged average has been landing near 30 g and reading as "on target," it was actually about 70% of where it should be.
 
 ### The bulk-specific problem
 
@@ -302,7 +302,7 @@ This is why the 3,110 kcal in Section 1 is a *starting hypothesis*. After two we
 
 > ### ⚠️ The one thing currently blocking everything else
 >
-> As of 2026-08-18 MacroFlow holds **14 logged meals** (most recent: today) and **1 weight entry** — recorded 2026-08-13 and never updated.
+> As of 2026-08-18 Jamtytrack holds **14 logged meals** (most recent: today) and **1 weight entry** — recorded 2026-08-13 and never updated.
 >
 > Food logging is the habit that's working. Weight logging is the one that isn't, and it's the more important of the two, because **every feedback mechanism in this document runs on the weight trend, not the food log**:
 >
@@ -376,9 +376,9 @@ Creatine causes ~1–2 kg of intracellular water weight in the first weeks. **Ex
 
 ---
 
-## 15. Changes Made to MacroFlow (2026-08-18)
+## 15. Changes Made to Jamtytrack (2026-08-18)
 
-Applied live to the `macroflow` D1 database so the app and this document agree.
+Applied live to the `jamtytrack` D1 database so the app and this document agree.
 
 ### Targets (`settings` row)
 
@@ -393,7 +393,7 @@ Applied live to the `macroflow` D1 database so the app and this document agree.
 Rollback if you disagree with any of it — `.rollback-targets.sql` in the project root restores all five values:
 
 ```bash
-npx wrangler d1 execute macroflow --remote --file .rollback-targets.sql
+npx wrangler d1 execute jamtytrack --remote --file .rollback-targets.sql
 ```
 
 ### Food library (`foods` table, 41 → 45)

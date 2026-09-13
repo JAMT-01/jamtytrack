@@ -19,7 +19,7 @@ Both halves are the same builds the repo already describes.
 
 | Half | Evidence | Verdict |
 |---|---|---|
-| Frontend | serves `assets/index-Cmxhdy_b.js` + `index-KAmyQSRD.css` — the **same content-hashed filenames** as `macroflow-app/dist/assets/`, built 2026-08-20 19:46 | unchanged since 2026-08-20 |
+| Frontend | serves `assets/index-Cmxhdy_b.js` + `index-KAmyQSRD.css` — the **same content-hashed filenames** as `jamtytrack-app/dist/assets/`, built 2026-08-20 19:46 | unchanged since 2026-08-20 |
 | Worker | the login gate served live is byte-identical to the one compiled into `dist/worker.js` (only the `${message}` placeholder differs) | matches the local build |
 
 The Worker's live route table also matches `dist/worker.js` exactly — 54 unique
@@ -41,7 +41,7 @@ regression described in `HABITS.md` §10 has stayed fixed.
 
 ## 2. What did change: the app is in daily use
 
-`macroflow-kb.md` §4 still says *"Logged meals — 12, spanning 2026-08-13 →
+`jamtytrack-kb.md` §4 still says *"Logged meals — 12, spanning 2026-08-13 →
 2026-08-16"* and *"Last 24h: 1,409 reads / 0 writes"*. That snapshot is three
 weeks old and no longer resembles the database.
 
@@ -94,7 +94,7 @@ still is not there, so the reminder is not the missing piece.
 
 Every one of these is a doc-only fix. No code is involved.
 
-### 3.1 `macroflow-kb.md` §12 — Telegram is connected, and has been since August
+### 3.1 `jamtytrack-kb.md` §12 — Telegram is connected, and has been since August
 
 The heading reads *"Telegram is still not connected — §4 is unchanged and this is
 now blocking"*, and the body says the token and chat id are **still empty**.
@@ -104,10 +104,10 @@ a populated `telegramChatId` (value withheld — this repo is public).
 
 `HABITS.md` §4 already caught this on 2026-08-28 under *"Correction: the bot IS
 connected, and outbound already works"*. The correction never made it into
-`macroflow-kb.md`, so the two documents now contradict each other, and the kb —
+`jamtytrack-kb.md`, so the two documents now contradict each other, and the kb —
 the longer, more authoritative-looking one — is the wrong half. **Fix the kb.**
 
-### 3.2 `macroflow-kb.md` §10 — the vision model moved
+### 3.2 `jamtytrack-kb.md` §10 — the vision model moved
 
 Documented as `google/gemini-3.6-flash`. Live `settings.openrouter_model` is
 **`google/gemini-3.7-flash`**, and Settings shows it. The report model
@@ -129,7 +129,7 @@ lock screen on the live site reads *"they close again after 3 minutes"*. There i
 no hardcoded 15 anywhere in the bundle. **Delete the item** rather than chasing
 it.
 
-### 3.4 `macroflow-kb.md` §4 — the activity figures
+### 3.4 `jamtytrack-kb.md` §4 — the activity figures
 
 *"Last write 2026-08-17, 0 writes in 24h"* is stale on its face given 48 logged
 meals through 2026-09-02. Either refresh it or mark it as a dated snapshot.
@@ -214,7 +214,7 @@ probably not the intended behaviour for the feature.
 **This is a decision, not a bug.** If the app is only ever used as a phone PWA it
 is fine as-is. If not, the injector needs a sidebar branch for the ≥760px layout
 — and per §6 of `PHOTOS-HOW-IT-WORKS.md`, that must be built against
-`macroflow-app/dist` served locally, never against a screenshot.
+`jamtytrack-app/dist` served locally, never against a screenshot.
 
 ---
 
@@ -260,7 +260,7 @@ grep -oE 'app\.(get|post|put|patch|delete)\("[^"]+"' dist/worker.js | sort -u
 
 Confirming the frontend build without deploying anything: the asset filenames are
 content-hashed, so `assets/index-*.js` on the live page matching
-`macroflow-app/dist/assets/` proves the frontend is unchanged.
+`jamtytrack-app/dist/assets/` proves the frontend is unchanged.
 
 ---
 
@@ -285,7 +285,7 @@ in `tools/build-worker.mjs`.
 ### The part that mattered: the deployed frontend was not in git
 
 `source`'s last commit was **18:23**. The modified files in that worktree were
-stamped **18:51–19:45**. `macroflow-app/dist/assets/` was built at **19:46** —
+stamped **18:51–19:45**. `jamtytrack-app/dist/assets/` was built at **19:46** —
 *after* those edits, and from them.
 
 Verified rather than assumed: the bundle served by
@@ -296,7 +296,7 @@ file, `src/components/CarrotMark.tsx`, which was **untracked**. The committed
 
 So the live UI could not be rebuilt from GitHub. Its only source was one
 uncommitted working tree, on one machine, in OneDrive — the same failure
-`macroflow-kb.md` §9 was written about (*"the deployed Worker is currently the
+`jamtytrack-kb.md` §9 was written about (*"the deployed Worker is currently the
 only copy of the code"*), reappearing on the other fork.
 
 ### What was done
@@ -319,7 +319,7 @@ Deliberately left out of a public repo, and added to `.gitignore`:
 
 ### The repo is public
 
-`JAMT-01/macroflow` is **public**, default branch `source`.
+`JAMT-01/jamtytrack` is **public**, default branch `source`.
 
 **Secret scan: clean.** No API keys, bot tokens, VAPID private keys, or the app
 passphrase are committed on either branch. The single `sk-or-v1-` match is an
@@ -327,7 +327,7 @@ input placeholder in `SettingsScreen.tsx`. `.gitignore` correctly covers
 `.dev.vars`, `.env`, `*.pem` and `.wrangler/`.
 
 **Exposed, but not credentials.** The Cloudflare account ID, the D1 database ID
-and the KV namespace ID appear in `macroflow-kb.md`, `wrangler.jsonc`,
+and the KV namespace ID appear in `jamtytrack-kb.md`, `wrangler.jsonc`,
 `dist/metadata.json`, `PROGRESS-PHOTOS.md` and `tools/README.md`. These are
 identifiers, not secrets — they cannot be used without an API token — so this is
 a judgement call about how much of your infrastructure you want indexed, not an
@@ -351,15 +351,15 @@ app, and the fixes exist on one machine only. Pushing resolves both halves.
 
 Done 2026-09-02:
 
-- [x] Commit the `macroflow-app` worktree, `CarrotMark.tsx` included — `6ebe71a` (§8)
+- [x] Commit the `jamtytrack-app` worktree, `CarrotMark.tsx` included — `6ebe71a` (§8)
 - [x] Commit and push the `master` worktree — `aef89da` (§8)
 
 Still open:
 
-- [ ] Correct `macroflow-kb.md` §12 — the bot is connected; point it at `HABITS.md` §4
-- [ ] Correct `macroflow-kb.md` §10 — vision model is `gemini-3.7-flash`
+- [ ] Correct `jamtytrack-kb.md` §12 — the bot is connected; point it at `HABITS.md` §4
+- [ ] Correct `jamtytrack-kb.md` §10 — vision model is `gemini-3.7-flash`
 - [ ] Delete the 3-vs-15 item from `PHOTOS-HOW-IT-WORKS.md` §8 — it is not a mismatch
-- [ ] Re-date or refresh `macroflow-kb.md` §4's activity figures
+- [ ] Re-date or refresh `jamtytrack-kb.md` §4's activity figures
 - [ ] Decide whether Habits should exist on the desktop sidebar
 - [ ] Press **Register webhook** in Settings to unblock `/done`, `/habits`, `/undo` —
       the status chip cannot confirm it worked, so verify by replying `/done` in Telegram
