@@ -2,13 +2,13 @@ export const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <style>
 :root{font-family:system-ui,sans-serif;color:#211d18;background:#f7f6f2;color-scheme:light}*{box-sizing:border-box}body{margin:0;padding:32px 20px}main{max-width:620px;margin:auto}a{color:#805013}header{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:30px}header a{text-decoration:none;font-weight:650}h1{font-size:32px;letter-spacing:-1px;margin:0 0 10px}p{line-height:1.6;color:#696157}section{padding:25px;margin:20px 0;background:white;border:1px solid #e8e3da;border-radius:22px}h2{font-size:19px;margin:0 0 16px}label{display:block;font-size:14px;font-weight:600;margin:17px 0 7px}input{display:block;width:100%;padding:13px;border:1px solid #cfc8bd;border-radius:10px;font:inherit}button{border:0;border-radius:12px;padding:13px 18px;font:inherit;font-weight:650;cursor:pointer;background:#ed780c;color:#201810}button:disabled{opacity:.5;cursor:wait}form button{width:100%;margin-top:20px}.muted{font-size:13px}.secondary{background:#f0ece5;margin-right:7px}.danger{background:#fbe7e4;color:#98231b}.status{background:#ece9e2;border-radius:9px;padding:12px;margin-top:14px;font-size:14px;line-height:1.5}.status.error{background:#fff0eb;color:#9d3315}.status:empty{display:none}#distance{font-size:35px;font-weight:750;letter-spacing:-1px}#recent{padding-left:20px;line-height:1.8}#actions{display:flex;gap:8px;flex-wrap:wrap}footer{font-size:12px;color:#82796e;line-height:1.6}[hidden]{display:none!important}
 </style><script src="/api/garmin/client.js" defer></script></head><body><main><header><a href="/">← Jamtytrack</a><span>Walking habit</span></header>
-<h1>Connect Garmin</h1><p>Your recorded walks can complete your daily walking habit automatically.</p>
+<h1>Connect Garmin</h1><p>Your recorded walks and runs can complete your daily walking habit automatically.</p>
 <div id="message" class="status" role="status" aria-live="polite">Loading connection status…</div>
 <div id="cooldown" class="status" hidden><strong id="retry-time"></strong><div id="retry-countdown" role="timer"></div><div class="muted">This pause is a Jamtytrack safeguard. Garmin may still reject the next attempt.</div></div>
-<section id="summary" hidden><h2 id="habit-name">Walk 10 km</h2><div id="distance"></div><p id="sync-status"></p><div id="actions"><button id="sync" class="secondary">Sync now</button><button id="backfill" class="secondary">Fill previous days</button><button id="disconnect" class="danger">Disconnect</button></div><h2 style="margin-top:24px">Recent imported walks</h2><ul id="recent"></ul><div id="history-result" class="status" role="status"></div><ul id="history-days"></ul></section>
-<section id="signin" hidden><h2>Sign in to Garmin Connect</h2><p class="muted">Your password is used for sign-in and is never saved. Only the resulting session is stored, encrypted, in your Cloudflare account.</p><form id="login-form"><label for="email">Garmin email</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="254"><label for="password">Garmin password</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="1024"><button type="submit">Connect and sync walks</button></form></section>
+<section id="summary" hidden><h2 id="habit-name">Walk 10 km</h2><div id="distance"></div><p id="goal-status"></p><p id="sync-status"></p><div id="actions"><button id="sync" class="secondary">Sync now</button><button id="backfill" class="secondary">Fill previous days</button><button id="disconnect" class="danger">Disconnect</button></div><h2 style="margin-top:24px">Recent imported walks and runs</h2><ul id="recent"></ul><div id="history-result" class="status" role="status"></div><ul id="history-days"></ul></section>
+<section id="signin" hidden><h2>Sign in to Garmin Connect</h2><p class="muted">Your password is used for sign-in and is never saved. Only the resulting session is stored, encrypted, in your Cloudflare account.</p><form id="login-form"><label for="email">Garmin email</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="254"><label for="password">Garmin password</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="1024"><button type="submit">Connect and sync activities</button></form></section>
 <section id="verification" hidden><h2>Verify your Garmin sign-in</h2><p>Enter the verification code from Garmin.</p><form id="mfa-form"><label for="code">Verification code</label><input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" required maxlength="12"><button type="submit">Verify and connect</button></form><button id="restart" class="secondary" style="margin-top:12px">Start again</button></section>
-<section><h2>How it works</h2><p>Save a <strong>Walk</strong> activity on your Garmin and sync the watch with Garmin Connect. Jamtytrack checks every 15 minutes and adds up your recorded walking distances using your app’s timezone.</p><p>Automatic check-ins start when you connect. Use <strong>Fill previous days</strong> to check recorded walks back to the start of your walking habit. Existing manual check-ins stay intact.</p><p class="muted">This is a personal, unofficial Garmin integration. If Garmin requires verification or rejects cloud access, we’ll show the problem here and pause syncing.</p></section>
+<section><h2>How it works</h2><p>Save a <strong>Walk</strong> or <strong>Run</strong> activity on your Garmin and sync the watch with Garmin Connect. Jamtytrack checks every 15 minutes and adds up your recorded walking and running distances using your app’s timezone.</p><p id="threshold-rule">For the 10 km habit, 8 km earns streak credit with a light orange square; 10 km reaches the full goal. Your actual distance is always kept.</p><p>Automatic check-ins start when you connect. Use <strong>Fill previous days</strong> to check recorded walks and runs back to the start of your walking habit. Existing manual check-ins stay intact.</p><p class="muted">This is a personal, unofficial Garmin integration. If Garmin requires verification or rejects cloud access, we’ll show the problem here and pause syncing.</p></section>
 <footer>Connection details are sent only to Garmin and your own Jamtytrack services. Meal and photo data are not sent to Garmin.</footer></main></body></html>`;
 
 // Shared by the standalone fallback and the Settings card. All controls and
@@ -46,14 +46,17 @@ async function refresh(){
  byId('verification').hidden=!state.pendingMfa;
  byId('habit-name').textContent=state.habitName;
  byId('distance').textContent=state.todayKm.toFixed(2)+' / '+state.targetKm+' km';
+ const streakKm=state.streakKm??(state.targetKm===10?8:state.targetKm);
+ byId('threshold-rule').textContent=streakKm<state.targetKm?streakKm+' km earns streak credit with a light orange square; '+state.targetKm+' km reaches the full goal. Your actual distance is always kept.':'Reaching '+state.targetKm+' km completes the habit. Your actual distance is always kept.';
+ byId('goal-status').textContent=state.todayKm>=state.targetKm?'Full distance reached today.':state.todayKm>=streakKm?'Almost there · Today’s distance qualifies for streak credit.':streakKm+' km needed for streak credit today.';
  byId('sync-status').textContent=(state.connected?'Automatic sync is on. ':'Automatic sync is paused. ')+(state.lastSync?'Last synced '+new Date(state.lastSync).toLocaleString()+'.':'No successful sync yet.');
  connected=state.connected;cooldownUntil=state.cooldownUntil;cooldown();
  byId('recent').replaceChildren();
  for(const walk of state.recent){const li=document.createElement('li');li.textContent=walk.day+' · '+(walk.distanceMeters/1000).toFixed(2)+' km';byId('recent').append(li);}
- if(!state.recent.length){const li=document.createElement('li');li.textContent='No walks imported yet.';byId('recent').append(li);}
+ if(!state.recent.length){const li=document.createElement('li');li.textContent='No walks or runs imported yet.';byId('recent').append(li);}
  if(state.error){message(state.error,true);}
  else if(state.pendingMfa){message('Garmin is waiting for your verification code.');}
- else if(state.connected){message('Garmin is connected. Recorded walks will sync automatically.');}
+ else if(state.connected){message('Garmin is connected. Recorded walks and runs will sync automatically.');}
  else{message('Sign in below to test the connection and start syncing.');}
 }
 async function run(action,text){
@@ -66,13 +69,13 @@ byId('login-form').addEventListener('submit',event=>{event.preventDefault();
  const email=byId('email').value;const password=byId('password').value;byId('password').value='';
  run(()=>api('login',{email,password}),'Connecting to Garmin…');});
 byId('mfa-form').addEventListener('submit',event=>{event.preventDefault();if(busy||paused()){cooldown();return;}const code=byId('code').value;byId('code').value='';run(()=>api('verify',{code}),'Verifying your sign-in…');});
-byId('sync').addEventListener('click',()=>{if(!paused())run(()=>api('sync',{}),'Checking your recorded walks…');});
+byId('sync').addEventListener('click',()=>{if(!paused())run(()=>api('sync',{}),'Checking your recorded walks and runs…');});
 byId('backfill').addEventListener('click',()=>{if(!paused()&&connected)run(async()=>{
  const result=await api('backfill',{});const history=result.history;
  byId('history-result').textContent='Checked '+history.start+' through '+history.end+'. Added '+history.added+' missing walking '+(history.added===1?'day.':'days.');
  byId('history-days').replaceChildren();
- for(const day of history.days){const li=document.createElement('li');li.textContent=day.day+' · '+day.km.toFixed(2)+' km · '+(day.added?'added':day.completed?'already filled':'below target or manually skipped');byId('history-days').append(li);}
-},'Checking your earlier recorded walks…');});
+ for(const day of history.days){const li=document.createElement('li');const progress=day.km>=(result.streakKm??result.targetKm)&&day.km<result.targetKm?' · Almost there':'';li.textContent=day.day+' · '+day.km.toFixed(2)+' km · '+(day.added?'added'+progress:day.completed?'already filled'+progress:'below streak threshold or manually skipped');byId('history-days').append(li);}
+},'Checking your earlier recorded walks and runs…');});
 byId('disconnect').addEventListener('click',()=>run(()=>api('disconnect',{}),'Disconnecting Garmin…'));
 byId('restart').addEventListener('click',()=>run(()=>api('cancel',{}),'Resetting sign-in…'));
 refresh().catch(error=>message(error.message,true));

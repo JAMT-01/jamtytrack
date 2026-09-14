@@ -1,4 +1,4 @@
-# Garmin walking sync
+# Garmin walking and running sync
 
 Production Worker: `jamtytrack-garmin-sync`. Connection controls live in
 **Settings → Garmin Connect**, alongside the other integrations. The existing
@@ -68,12 +68,16 @@ activity titles/routes.
 ## Habit behavior
 
 - The existing `Walk 10 km` habit is selected by ID, not name.
-- Only `activityType.typeKey === "walking"` counts; runs/hikes and all-day steps
-  do not. Activity IDs are unique, and distances remain in meters until summed.
+- Recorded `walking` activities and running activities (`running`, `street_running`,
+  `track_running`, `trail_running`, `treadmill_running`, `indoor_running`, `ultra_run`,
+  `virtual_run`, and `obstacle_run`) count. Hikes, cycling, multisport totals, and
+  all-day steps do not. Activity IDs are unique, and distances remain in meters
+  until summed. The legacy `normalizeWalks` helper name remains available to
+  existing import scripts; it now normalizes both walks and runs.
 - Garmin UTC start times are assigned to the app's configured timezone. Activity
   queries include an adjacent-day margin so timezone boundaries do not lose walks.
 - Automatic history begins on the day of connection. **Fill previous days** in
-  Settings explicitly imports recorded walks from the habit's `started_on` date
+  Settings explicitly imports recorded walks and runs from the habit's `started_on` date
   through today. It uses the same session, lock, distance threshold, and manual
   override rules; repeated imports do not create duplicate check-ins. The result
   lists daily distances and which missing days were added. A complete activity
@@ -82,8 +86,15 @@ activity titles/routes.
 - Each ordinary sync rechecks the last
   week, or the period since the last successful sync after an outage, whichever
   is longer. Older edits outside this window are not automatically rechecked.
-- Partial distances are stored in `garmin_activities`. Only reaching the target
-  creates a completed habit day, since every `habit_entries` row counts as done.
+- For a 10 km target, daily totals from 8 km up to (but excluding) 10 km create a
+  completed habit day with streak credit and its actual distance. The app displays
+  that entry as light orange / Almost there. Totals of 10 km or more reach the
+  full goal. Other target values still require the full target distance. Totals
+  below the threshold remain in `garmin_activities` without a habit entry.
+- An edited activity can move an automatic entry between near-goal and full-goal
+  states without adding another completion; dropping below the streak threshold
+  removes only the auto-owned entry. No schema change is required: `value` holds
+  the real kilometers, and the main app derives its completion appearance.
 - Snapshot replacement and completion changes commit in one D1 batch. An invalid
   response or incomplete pagination fails before modifying habit records.
 - Only entries owned by this integration are updated/removed. Manual app/Telegram
@@ -92,13 +103,16 @@ activity titles/routes.
 - Disconnect removes credentials and imported activity metadata, retaining past
   completions as ordinary app history.
 
-## Verification on 2026-09-13
+## Verification
 
-18 connector tests cover distance thresholds, timezone boundaries, duplicates,
+23 connector tests cover 8/10 km distance boundaries, running subtypes, unchanged
+thresholds for other targets, timezone boundaries, duplicates,
 updates/deletions, manual overrides, transaction rollback, concurrency, encrypted
 storage, MFA, rejected requests, and cooldown behavior in the API and browser
 client (including failed status refreshes and timer expiry without requests),
-plus an authenticated history import with manual entries and repeated runs.
+plus an authenticated history import with near-goal runs, manual entries, and
+repeat imports. The connection client also tests near-goal/full-goal copy and
+non-10 km targets. TypeScript checks pass.
 The main bundle has eight passing login and
 gateway tests covering authentication and cross-origin requests.
 

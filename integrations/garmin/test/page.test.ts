@@ -6,7 +6,7 @@ import {CLIENT, PAGE} from '../src/page.ts';
 // Small DOM harness: exercise the shipped client through form events and a
 // controlled clock/network, without contacting Garmin or using real credentials.
 const settle=()=>new Promise<void>(resolve=>setImmediate(resolve));
-function fixture(options:{initialCooldown?:boolean;statusFailsAfterLogin?:boolean}={}){
+function fixture(options:{initialCooldown?:boolean;statusFailsAfterLogin?:boolean;todayKm?:number;targetKm?:number}={}){
  let now=Date.parse('2026-09-13T18:25:40Z');const deadline=now+3_600_000;
  const node=()=>({textContent:'',hidden:false,disabled:false,value:'',handlers:{} as Record<string,Function>,
   classList:{toggle(){}},replaceChildren(){},append(){},addEventListener(event:string,fn:Function){this.handlers[event]=fn;}});
@@ -20,7 +20,7 @@ function fixture(options:{initialCooldown?:boolean;statusFailsAfterLogin?:boolea
    calls.push(init.method+' '+url);
    if(init.method==='POST'){rejected=true;return Response.json({error:'Garmin rejected the sign-in.',code:'rate_limited',retryAt:deadline},{status:429});}
    if(rejected&&options.statusFailsAfterLogin)throw new Error('Status temporarily unavailable');
-   return Response.json({connected:false,hasSession:false,pendingMfa:false,habitName:'Walk 10 km',targetKm:10,todayKm:0,
+   return Response.json({connected:false,hasSession:false,pendingMfa:false,habitName:'Walk 10 km',targetKm:options.targetKm??10,todayKm:options.todayKm??0,
     recent:[],error:rejected?'Garmin returned a rate-limit response.':null,cooldownUntil:rejected?deadline:0});
   },
  });
@@ -37,6 +37,20 @@ test('a failed sign-in keeps its retry deadline visible after the status refresh
  assert.equal(f.login.disabled,true);assert.equal(f.verify.disabled,true);assert.equal(f.nodes.sync.disabled,true);
  assert.equal(f.nodes.password.value,'');
  f.submit();await settle();assert.equal(f.calls.filter(call=>call.startsWith('POST')).length,1);
+});
+
+test('connection copy distinguishes 8 km streak credit from the full 10 km goal',async()=>{
+ const f=fixture({todayKm:9});await settle();
+ assert.equal(f.nodes.distance.textContent,'9.00 / 10 km');
+ assert.match(f.nodes['goal-status'].textContent,/Almost there.*qualifies for streak credit/);
+ assert.match(f.nodes['threshold-rule'].textContent,/8 km earns streak credit.*10 km reaches the full goal/);
+ const full=fixture({todayKm:10});await settle();assert.equal(full.nodes['goal-status'].textContent,'Full distance reached today.');
+});
+
+test('connection copy keeps the full threshold for a different target',async()=>{
+ const f=fixture({todayKm:9,targetKm:12});await settle();
+ assert.equal(f.nodes['goal-status'].textContent,'12 km needed for streak credit today.');
+ assert.equal(f.nodes['threshold-rule'].textContent,'Reaching 12 km completes the habit. Your actual distance is always kept.');
 });
 
 test('the error response preserves the cooldown even when refreshing status fails',async()=>{

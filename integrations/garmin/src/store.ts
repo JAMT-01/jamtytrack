@@ -44,12 +44,17 @@ export function syncStart(row: Connection, today: string, timezone: string): str
   const earliest = [last, offsetDay(today,-7)].sort()[0];
   return [row.since_day || today, earliest].sort()[1];
 }
-/** Reconcile only auto-owned check-ins. Partial distances stay in the import
- * table because any habit_entries row counts as a completed day in the app.
+export function completionThresholdKm(targetKm: number): number {
+  return targetKm === 10 ? 8 : targetKm;
+}
+/** Reconcile only auto-owned check-ins. The 10 km habit awards streak credit
+ * from 8 km while preserving the actual distance for its near-goal appearance.
+ * Below-threshold distances stay in the import table, without a completed day.
  * All statements commit together, including replacements and deletions.
  */
 export async function reconcile(db: D1Database, habitId: string, walks: Walk[], start: string, end: string, targetKm: number) {
   if (!(targetKm > 0) || !Number.isFinite(targetKm)) throw new Error('Invalid target');
+  const thresholdMeters = completionThresholdKm(targetKm) * 1000;
   const statements = [db.prepare('DELETE FROM garmin_activities WHERE day>=? AND day<=?').bind(start,end)];
   for (const walk of walks) statements.push(db.prepare(`INSERT INTO garmin_activities(activity_id,started_at,day,distance_meters)
     VALUES(?,?,?,?) ON CONFLICT(activity_id) DO UPDATE SET started_at=excluded.started_at,day=excluded.day,distance_meters=excluded.distance_meters`)
@@ -62,16 +67,16 @@ export async function reconcile(db: D1Database, habitId: string, walks: Walk[], 
   statements.push(db.prepare(`DELETE FROM habit_entries WHERE habit_id=? AND done_date>=? AND done_date<=? AND source='garmin'
     AND id IN (SELECT entry_id FROM garmin_habit_days WHERE habit_id=? AND suppressed=0)
     AND COALESCE((SELECT SUM(distance_meters) FROM garmin_activities WHERE day=habit_entries.done_date),0) < ?`)
-    .bind(habitId,start,end,habitId,targetKm*1000));
+    .bind(habitId,start,end,habitId,thresholdMeters));
   statements.push(db.prepare(`INSERT INTO habit_entries(id,habit_id,done_date,value,note,source,logged_at)
     SELECT 'garmin:' || d.habit_id || ':' || d.day,d.habit_id,d.day,SUM(a.distance_meters)/1000.0,
-      'Synced recorded walks from Garmin','garmin',?
+      'Synced recorded walks and runs from Garmin','garmin',?
     FROM garmin_habit_days d JOIN garmin_activities a ON a.day=d.day
     WHERE d.habit_id=? AND d.day>=? AND d.day<=? AND d.suppressed=0 GROUP BY d.day
     HAVING SUM(a.distance_meters)>=?
-    ON CONFLICT(habit_id,done_date) DO UPDATE SET value=excluded.value,logged_at=excluded.logged_at
+    ON CONFLICT(habit_id,done_date) DO UPDATE SET value=excluded.value,note=excluded.note,logged_at=excluded.logged_at
     WHERE habit_entries.source='garmin' AND habit_entries.id=excluded.id`)
-    .bind(new Date().toISOString(),habitId,start,end,targetKm*1000));
+    .bind(new Date().toISOString(),habitId,start,end,thresholdMeters));
   statements.push(db.prepare(`UPDATE garmin_habit_days SET entry_id=(SELECT id FROM habit_entries e
     WHERE e.habit_id=garmin_habit_days.habit_id AND e.done_date=day AND e.source='garmin')
     WHERE habit_id=? AND day>=? AND day<=? AND suppressed=0`).bind(habitId,start,end));

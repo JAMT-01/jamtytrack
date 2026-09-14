@@ -22,29 +22,50 @@ function fixture(){
  const db={prepare,async batch(statements:ReturnType<typeof prepare>[]){sqlite.exec('BEGIN');try{const r=[];for(const s of statements)r.push(await s.run());sqlite.exec('COMMIT');return r;}catch(e){sqlite.exec('ROLLBACK');throw e;}}};
  return {db,sqlite,entries:()=>sqlite.prepare('SELECT * FROM habit_entries ORDER BY done_date').all(),sync:(rows:unknown[])=>reconcile(db,'walk',normalizeWalks(rows,timezone,day,day),day,day,10)};
 }
-test('only recorded walks count, deduplicated and assigned to the Buenos Aires date',()=>{
+test('recorded walks and runs count, deduplicated and assigned to the Buenos Aires date',()=>{
  const rows=normalizeWalks([activity(1,3000,'2026-09-14 01:00:00'),activity(1,3000,'2026-09-14 01:00:00'),activity(2,9000,undefined,'running'),activity(3,9000,undefined,'hiking')],timezone,day,day);
- assert.equal(rows.length,1);assert.equal(rows[0].day,day);assert.equal(rows[0].distanceMeters,3000);
+ assert.equal(rows.length,2);assert.equal(rows[0].day,day);assert.equal(rows[0].distanceMeters,3000);assert.equal(rows[1].distanceMeters,9000);
  assert.throws(()=>normalizeWalks([activity(4,NaN)],timezone,day,day),/missing a valid/);
+ assert.throws(()=>normalizeWalks([activity(5,NaN,undefined,'running')],timezone,day,day),/missing a valid/);
 });
-test('partial walks never complete the habit; 6+4 km complete once, even after repeated syncs',async()=>{
+test('running subtypes count while hiking, cycling, multisport totals, and steps do not',()=>{
+ const included=['street_running','track_running','trail_running','treadmill_running','indoor_running','ultra_run','virtual_run','obstacle_run'];
+ const excluded=['hiking','cycling','multi_sport','triathlon','steps','other'];
+ const rows=[...included,...excluded].map((type,index)=>activity(index+1,9000,undefined,type));
+ assert.deepEqual(normalizeWalks(rows,timezone,day,day).map(row=>row.id),included.map((_,index)=>String(index+1)));
+});
+test('walks and runs sum to one completion, even after repeated syncs',async()=>{
  const f=fixture();await f.sync([activity(1,6000)]);assert.equal(f.entries().length,0);
- await f.sync([activity(1,6000),activity(2,4000)]);await f.sync([activity(1,6000),activity(2,4000)]);
+ await f.sync([activity(1,6000),activity(2,4000,undefined,'running')]);await f.sync([activity(1,6000),activity(2,4000,undefined,'running')]);
  assert.equal(f.entries().length,1);assert.equal(f.entries()[0].value,10);assert.equal(f.entries()[0].source,'garmin');
 });
-test('edited and deleted walks recompute only the automatically managed completion',async()=>{
+test('8 km is inclusive for streak credit and the actual distance stays below the full 10 km goal',async()=>{
+ const f=fixture();await f.sync([activity(1,7999.9,undefined,'running')]);assert.equal(f.entries().length,0);
+ await f.sync([activity(1,8000,undefined,'running')]);assert.equal(f.entries().length,1);assert.equal(f.entries()[0].value,8);
+ await f.sync([activity(1,9999.9,undefined,'running')]);assert.equal(f.entries().length,1);assert.equal(f.entries()[0].value,9.9999);
+ await f.sync([activity(1,10000,undefined,'running')]);assert.equal(f.entries().length,1);assert.equal(f.entries()[0].value,10);
+});
+test('targets other than 10 km retain their exact completion threshold',async()=>{
+ for(const target of [5,8,12]){
+  const f=fixture();const sync=(meters:number)=>reconcile(f.db,'walk',normalizeWalks([activity(1,meters,undefined,'running')],timezone,day,day),day,day,target);
+  await sync(target*1000-1);assert.equal(f.entries().length,0);
+  await sync(target*1000);assert.equal(f.entries()[0].value,target);
+ }
+});
+test('edited and deleted activities upgrade or downgrade only the automatically managed completion',async()=>{
  const f=fixture();await f.sync([activity(1,11000)]);assert.equal(f.entries()[0].value,11);
- await f.sync([activity(1,9000)]);assert.equal(f.entries().length,0);
+ await f.sync([activity(1,9000)]);assert.equal(f.entries().length,1);assert.equal(f.entries()[0].value,9);
+ await f.sync([activity(1,7999)]);assert.equal(f.entries().length,0);
  await f.sync([activity(1,12000)]);assert.equal(f.entries()[0].value,12);
  await f.sync([]);assert.equal(f.entries().length,0);
 });
 test('manual check-ins are never overwritten or deleted',async()=>{
  const f=fixture();f.sqlite.prepare("INSERT INTO habit_entries VALUES('manual','walk',?,15,'My own distance','telegram','now')").run(day);
- await f.sync([activity(1,12000)]);await f.sync([]);
+ await f.sync([activity(1,9000,undefined,'running')]);await f.sync([activity(1,12000)]);await f.sync([]);
  assert.equal(f.entries()[0].value,15);assert.equal(f.entries()[0].note,'My own distance');
 });
-test('manual removal of an automatic check-in remains an override',async()=>{
- const f=fixture();await f.sync([activity(1,12000)]);f.sqlite.exec('DELETE FROM habit_entries');
+test('manual removal of a near-goal automatic check-in remains an override after a full-goal update',async()=>{
+ const f=fixture();await f.sync([activity(1,9000,undefined,'running')]);f.sqlite.exec('DELETE FROM habit_entries');
  await f.sync([activity(1,12000)]);await f.sync([activity(1,13000)]);assert.equal(f.entries().length,0);
 });
 test('manual edits of automatic entries transfer ownership to the app',async()=>{
@@ -102,7 +123,7 @@ test('history import fills qualifying gaps from the habit start, preserves manua
  f.sqlite.prepare("INSERT INTO habit_entries VALUES('manual','walk',?,10,'Original check-in','app','original')").run(start);
  const cipher=await seal({accessToken:'test-access',refreshToken:'test-refresh',clientId:'test-client',expiresAt:Date.now()+86_400_000},key);
  f.sqlite.prepare('UPDATE garmin_connection SET session_cipher=?,enabled=1,since_day=?').run(cipher,today);
- const rows=[activity(1,12000,start+' 15:00:00'),activity(2,11000,second+' 15:00:00'),activity(3,4000,third+' 15:00:00'),activity(4,6000,third+' 17:00:00'),activity(5,9000,today+' 15:00:00')];
+ const rows=[activity(1,12000,start+' 15:00:00'),activity(2,11000,second+' 15:00:00'),activity(3,4000,third+' 15:00:00'),activity(4,6000,third+' 17:00:00'),activity(5,9000,today+' 15:00:00','running')];
  t.mock.method(globalThis,'fetch',async(url:string)=>{
   assert.equal(new URL(url).pathname,'/activitylist-service/activities/search/activities');
   assert.equal(new URL(url).searchParams.get('startDate'),offsetDay(start,-1));return Response.json(rows);
@@ -111,10 +132,11 @@ test('history import fills qualifying gaps from the habit start, preserves manua
   headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:'{}'}),
   {DB:f.db,GARMIN_SYNC_TOKEN:token,ENCRYPTION_KEY:key,HABIT_ID:'walk'},{});
  const response=await post();assert.equal(response.status,200);const result=await response.json();
- assert.equal(result.history.added,2);assert.deepEqual(result.history.days.filter(day=>day.added).map(day=>day.day),[second,third]);
- assert.equal(f.entries().length,3);assert.equal(f.entries()[0].note,'Original check-in');assert.equal(f.entries()[0].value,10);
+ assert.equal(result.history.added,3);assert.deepEqual(result.history.days.filter(day=>day.added).map(day=>day.day),[second,third,today]);
+ assert.equal(f.entries().length,4);assert.equal(f.entries()[0].note,'Original check-in');assert.equal(f.entries()[0].value,10);
+ assert.equal(f.entries().at(-1).value,9);assert.equal(result.streakKm,8);assert.equal(result.todayKm,9);assert.equal(result.todayCompletion,'near');
  assert.equal(f.sqlite.prepare('SELECT since_day FROM garmin_connection').get().since_day,start);
- assert.equal((await (await post()).json()).history.added,0);assert.equal(f.entries().length,3);
+ assert.equal((await (await post()).json()).history.added,0);assert.equal(f.entries().length,4);
 });
 test('MFA keeps cookies but no password; success yields a renewable session',async()=>{
  const responses=[Response.json({responseStatus:{type:'MFA_REQUIRED'},customerMfaInfo:{mfaLastMethodUsed:'email'}},{headers:{'set-cookie':'sso=test; Secure; HttpOnly'}}),

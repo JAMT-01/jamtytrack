@@ -19,6 +19,21 @@
     return Number.isInteger(value) ? String(value) : String(Math.round(value * 10) / 10);
   }
 
+  function hasDistanceCredit(habit) {
+    return Number.isFinite(habit.streakMinimum) && habit.streakMinimum > 0;
+  }
+
+  function entryDistance(value) {
+    /* Keep near-goal values below the full goal when formatting watch data. */
+    return String(Math.floor((value + Number.EPSILON) * 100) / 100);
+  }
+
+  function completionText(completion) {
+    if (completion === 'near') return 'Almost there · streak counts';
+    if (completion === 'progress') return 'Progress saved · streak not complete';
+    return 'Goal complete · streak counts';
+  }
+
   function plural(count, word) {
     return count + ' ' + word + (count === 1 ? '' : 's');
   }
@@ -202,6 +217,8 @@
       accent: toCss(accent),
       accentFaint: rgba(accent, 0.12),
       accentMid: rgba(accent, 0.42),
+      near: dark ? '#754722' : '#ffdcaf',
+      onNear: dark ? '#ffddb6' : '#6f3d12',
       onAccent: luminance(accent) > 0.6 ? '#000' : '#fff',
       shadow: dark ? 'rgba(0,0,0,.5)' : 'rgba(0,0,0,.18)',
       cardShadow: declaredShadow || (dark ? '0 10px 28px rgba(0,0,0,.22)' : '0 1px 2px rgba(20,18,14,.04),0 8px 22px rgba(20,18,14,.05)'),
@@ -284,6 +301,16 @@
     '.check[aria-pressed="false"]:after{content:"";width:12px;height:12px;border-radius:50%;background:' + t.soft + ';}' +
     '.check[aria-pressed="true"]{background:' + t.accent + ';border-color:' + t.accent + ';color:' + t.onAccent + ';' +
       'box-shadow:0 7px 18px ' + t.accentMid + ';}' +
+    '.check[data-completion="near"]{background:' + t.near + ';border-color:' + t.near + ';color:' + t.onNear + ';box-shadow:none;}' +
+    '.completion-note{display:inline-block;font-size:11px;line-height:1.4;margin:7px 0 0;padding:4px 7px;border-radius:7px;background:' + t.soft + ';color:' + t.muted + ';}' +
+    '.completion-note[data-completion="near"]{background:' + t.near + ';color:' + t.onNear + ';}' +
+    '.distance-form{margin-top:16px;padding-top:14px;border-top:1px solid ' + t.border + ';}' +
+    '.distance-form label{margin:0 0 7px;text-transform:none;letter-spacing:0;}' +
+    '.distance-controls{display:flex;align-items:center;gap:9px;}.distance-controls input{min-width:0;flex:1;width:100px;}' +
+    '.distance-save{flex:none;padding:12px 14px;border:0;border-radius:' + t.radius + ';background:' + t.accent + ';color:' + t.onAccent + ';font-size:13px;font-weight:650;cursor:pointer;}' +
+    '.distance-form button[disabled],.distance-form input[disabled]{opacity:.55;cursor:default;}' +
+    '.distance-help{font-size:11px;line-height:1.5;color:' + t.muted + ';margin:7px 0 0;}' +
+    '.distance-form .err:empty{display:none;}.distance-form .err{margin:7px 0 0;}' +
     '.check:active:not([disabled]){transform:scale(.94);}' +
     '.check[disabled]{opacity:.45;cursor:default;}' +
     '.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0 0;padding:0;}' +
@@ -314,18 +341,24 @@
     '.weekday{font:500 8px/18px ' + t.mono + ';color:' + t.muted + ';text-align:center;}' +
     '.heatmap{display:grid;grid-template-columns:repeat(10,18px);column-gap:5px;min-width:0;}' +
     '.week{display:grid;grid-template-rows:repeat(7,18px);gap:5px;}' +
-    '.cell{width:18px;height:18px;border-radius:5px;background:' + t.surface + ';box-shadow:inset 0 0 0 1px ' + t.border + ';}' +
+    '.cell{width:18px;height:18px;padding:0;border:0;border-radius:5px;background:' + t.surface + ';color:' + t.text + ';box-shadow:inset 0 0 0 1px ' + t.border + ';font:700 13px/18px ' + t.font + ';text-align:center;}' +
+    'button.cell{cursor:pointer;}button.cell:focus-visible{outline:2px solid ' + t.text + ';outline-offset:2px;}' +
     '.cell[data-done="1"]{background:' + t.accent + ';box-shadow:inset 0 -2px 0 rgba(0,0,0,.08);}' +
+    '.cell[data-completion="near"]{background:' + t.near + ';color:' + t.onNear + ';box-shadow:inset 0 0 0 1px rgba(140,75,15,.12);}' +
+    '.cell[data-completion="progress"]{color:' + t.onNear + ';background:' + t.surface + ';}' +
+    '.cell[data-selected="1"]{outline:2px solid ' + t.text + ';outline-offset:2px;}' +
     /* Keep the whole contribution matrix visible. Fully transparent pre-start
        cells made a new habit look like a broken two-column chart. */
     '.cell[data-before="1"]{background:' + t.surface + ';box-shadow:inset 0 0 0 1px ' + t.border + ';opacity:.58;}' +
     '.cell[data-future="1"]{background:' + t.surface + ';box-shadow:inset 0 0 0 1px ' + t.border + ';opacity:.4;}' +
     '.cell[data-today="1"]{outline:2px solid ' + t.accent + ';outline-offset:2px;}' +
-    '.activity-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:11px 2px 0;' +
+    '.activity-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:11px 2px 0;' +
       'font-size:9px;color:' + t.muted + ';}' +
-    '.legend{display:flex;align-items:center;gap:5px;white-space:nowrap;}' +
+    '.legend{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;}.legend-item{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}' +
     '.key{width:10px;height:10px;border-radius:3px;background:' + t.surface + ';box-shadow:inset 0 0 0 1px ' + t.border + ';}' +
     '.key.done{background:' + t.accent + ';box-shadow:none;}' +
+    '.key.near{display:grid;place-items:center;width:13px;height:13px;background:' + t.near + ';color:' + t.onNear + ';font-size:11px;font-style:normal;box-shadow:none;}' +
+    '.day-detail{min-height:30px;font-size:11px;line-height:1.5;margin:12px 2px 0;color:' + t.muted + ';}.day-detail strong{color:' + t.text + ';}' +
 
     /* per-habit controls */
     '.rows{margin:12px 0 0;border-top:1px solid ' + t.border + ';padding-top:10px;display:none;}' +
@@ -365,6 +398,10 @@
   var telegramReady = null;   /* null = unknown, true/false once /api/settings answers */
   var tab = 'today';
   var openCards = {};
+  var distanceDrafts = {};
+  var distanceErrors = {};
+  var savingHabits = {};
+  var selectedDays = {};
   var journey = null;
   var homeHost = null;
   var refreshing = null;
@@ -554,7 +591,9 @@ function rewardCelebration(before, after) {
        different thing from the streak: day 12 with a 3-day streak says something
        the streak alone does not. */
     var bits = ['Day ' + habit.dayNumber];
-    if (habit.doneToday) {
+    if (hasDistanceCredit(habit) && habit.todayHasEntry && habit.todayValue !== null) {
+      bits.push(entryDistance(habit.todayValue) + ' ' + habit.unit + ' today');
+    } else if (habit.doneToday) {
       bits.push(habit.todayValue !== null
         ? 'done \u00b7 ' + trim(habit.todayValue) + (habit.unit ? ' ' + habit.unit : '')
         : 'done');
@@ -562,16 +601,24 @@ function rewardCelebration(before, after) {
       bits.push('reminder ' + habit.reminderTime);
     }
     who.appendChild(el('p', { class: 'sub' }, bits.join(' \u00b7 ')));
+    if (hasDistanceCredit(habit) && habit.todayHasEntry) {
+      who.appendChild(el('span', { class: 'completion-note', 'data-completion': habit.todayCompletion },
+        (habit.todayCompletion === 'near' ? '≈ ' : '') + completionText(habit.todayCompletion)));
+    }
     top.appendChild(who);
 
     var check = el('button', {
       class: 'check',
       'aria-pressed': String(habit.doneToday),
-      'aria-label': (habit.doneToday ? 'Undo today for ' : 'Check off ') + habit.name
-    }, habit.doneToday ? '\u2713' : '');
+      'data-completion': habit.todayCompletion || (habit.doneToday ? 'full' : 'none'),
+      'aria-label': (habit.doneToday ? 'Undo today for ' : 'Check off ') + habit.name +
+        (habit.todayCompletion === 'near' ? ': ' + entryDistance(habit.todayValue) + ' km, almost there, streak counts' : '')
+    }, habit.todayCompletion === 'near' ? '≈' : habit.doneToday ? '\u2713' : '');
+    check.disabled = Boolean(savingHabits[habit.id]);
     check.addEventListener('click', function () { toggle(habit, check); });
     top.appendChild(check);
     card.appendChild(top);
+    if (hasDistanceCredit(habit)) card.appendChild(buildDistanceForm(habit));
 
     if(habit.rewards)card.appendChild(renderStreakReward(habit));
     card.appendChild(buildActivity(habit));
@@ -596,6 +643,38 @@ function rewardCelebration(before, after) {
     return card;
   }
 
+  function buildDistanceForm(habit) {
+    var form = el('form', { class: 'distance-form', 'aria-label': 'Log distance for ' + habit.name });
+    var inputId = 'distance-' + habit.id, helpId = inputId + '-help', errorId = inputId + '-error';
+    form.appendChild(el('label', { for: inputId }, 'Distance today (' + habit.unit + ')'));
+    var controls = el('div', { class: 'distance-controls' });
+    var draft = distanceDrafts[habit.id];
+    var input = el('input', {
+      id: inputId, type: 'number', min: '0', step: 'any', inputmode: 'decimal', required: '',
+      value: draft !== undefined ? draft : habit.todayHasEntry && habit.todayValue !== null ? entryDistance(habit.todayValue) : '',
+      placeholder: 'e.g. 9', 'aria-describedby': helpId + ' ' + errorId
+    });
+    input.addEventListener('input', function () { distanceDrafts[habit.id] = input.value; });
+    var saveDistance = el('button', { class: 'distance-save', type: 'submit' }, savingHabits[habit.id] ? 'Saving…' : 'Save distance');
+    input.disabled = saveDistance.disabled = Boolean(savingHabits[habit.id]);
+    controls.appendChild(input); controls.appendChild(saveDistance); form.appendChild(controls);
+    form.appendChild(el('p', { class: 'distance-help', id: helpId },
+      habit.streakMinimum + ' km keeps your streak. ' + trim(habit.targetValue) + '+ km completes the goal. Save your total for today.'));
+    var error = el('p', { class: 'err', id: errorId, role: 'alert' }, distanceErrors[habit.id] || ''); form.appendChild(error);
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      if (savingHabits[habit.id]) return;
+      distanceDrafts[habit.id] = input.value;
+      var value = Number(input.value);
+      if (input.value.trim() === '' || !Number.isFinite(value) || value < 0) {
+        distanceErrors[habit.id] = 'Enter a distance of 0 km or more.';
+        error.textContent = distanceErrors[habit.id]; input.focus(); return;
+      }
+      await checkInWith(habit.id, value);
+    });
+    return form;
+  }
+
   function stat(value, label) {
     var node = el('div', { class: 'stat' });
     node.appendChild(el('b', null, value));
@@ -613,6 +692,29 @@ function rewardCelebration(before, after) {
     var activity = el('section', { class: 'activity' });
     var done = {};
     habit.history.forEach(function (date) { done[date] = true; });
+    var entries = {};
+    (habit.historyEntries || []).forEach(function (entry) { entries[entry.date] = entry; });
+    var distanceCredit = hasDistanceCredit(habit);
+    var dayDetail = el('p', { class: 'day-detail', 'aria-live': 'polite', 'aria-atomic': 'true' });
+    var cells = [];
+    var selectedDay = selectedDays[habit.id] || today;
+
+    function dayDescription(date) {
+      var entry = entries[date];
+      var value = entry && entry.value !== null ? entryDistance(entry.value) + (habit.unit ? ' ' + habit.unit : '') : '';
+      if (entry) return [fmtDate(date), value, distanceCredit ? completionText(entry.completion) : 'Done'].filter(Boolean).join(' · ');
+      return fmtDate(date) + (done[date] ? ' · Done' : ' · Nothing logged');
+    }
+    function selectDay(cell, focus) {
+      selectedDays[habit.id] = cell.dataset.date;
+      cells.forEach(function (item) {
+        var selected = item === cell;
+        item.tabIndex = selected ? 0 : -1;
+        item.setAttribute('data-selected', selected ? '1' : '0');
+      });
+      dayDetail.textContent = dayDescription(cell.dataset.date);
+      if (focus) cell.focus();
+    }
 
     var currentWeek = addDays(today, -weekdayIndex(today));
     var firstWeek = addDays(currentWeek, -(GRID_WEEKS - 1) * 7);
@@ -621,8 +723,8 @@ function rewardCelebration(before, after) {
 
     var months = el('div', { class: 'months', 'aria-hidden': 'true' });
     var heatmap = el('div', {
-      class: 'heatmap', role: 'img',
-      'aria-label': 'Habit activity over the last ten weeks'
+      class: 'heatmap', role: 'group',
+      'aria-label': 'Habit activity over the last ten weeks. Select a day for details; use arrow keys to move.'
     });
     var previousMonth = '';
 
@@ -635,14 +737,37 @@ function rewardCelebration(before, after) {
       var week = el('div', { class: 'week' });
       for (var dayIndex = 0; dayIndex < 7; dayIndex++) {
         var date = addDays(weekStart, dayIndex);
-        var cell = el('div', { class: 'cell', title: fmtDate(date) + (done[date] ? ' · done' : '') });
+        var isEligible = date >= habit.startedOn && date <= today;
+        var cell = el(isEligible ? 'button' : 'div', { class: 'cell', title: dayDescription(date), 'data-date': date });
         if (date < habit.startedOn) cell.setAttribute('data-before', '1');
         else if (date > today) cell.setAttribute('data-future', '1');
         else {
+          cell.setAttribute('type', 'button');
+          cell.setAttribute('aria-label', dayDescription(date));
+          cell.tabIndex = -1;
+          cell.addEventListener('click', function (event) { selectDay(event.currentTarget, false); });
+          cell.addEventListener('keydown', function (event) {
+            var index = cells.indexOf(event.currentTarget), offset = 0;
+            if (event.key === 'ArrowRight') offset = 7;
+            else if (event.key === 'ArrowLeft') offset = -7;
+            else if (event.key === 'ArrowDown') offset = 1;
+            else if (event.key === 'ArrowUp') offset = -1;
+            else if (event.key === 'Home') offset = -index;
+            else if (event.key === 'End') offset = cells.length - 1 - index;
+            else return;
+            event.preventDefault();
+            selectDay(cells[Math.max(0, Math.min(cells.length - 1, index + offset))], true);
+          });
+          cells.push(cell);
           eligible++;
           if (done[date]) {
             completed++;
             cell.setAttribute('data-done', '1');
+          }
+          var entry = entries[date];
+          if (entry && distanceCredit) {
+            cell.setAttribute('data-completion', entry.completion);
+            cell.textContent = entry.completion === 'near' ? '≈' : entry.completion === 'progress' ? '·' : '';
           }
         }
         if (date === today) cell.setAttribute('data-today', '1');
@@ -652,7 +777,7 @@ function rewardCelebration(before, after) {
     }
 
     var percent = eligible ? Math.round(completed / eligible * 100) : 0;
-    heatmap.setAttribute('aria-label', completed + ' of ' + eligible + ' eligible days completed in the last ten weeks');
+    heatmap.setAttribute('aria-label', completed + ' of ' + eligible + ' eligible days completed in the last ten weeks. Select a day for details; use arrow keys to move.');
 
     var head = el('div', { class: 'activity-head' });
     var heading = el('div');
@@ -682,13 +807,21 @@ function rewardCelebration(before, after) {
 
     var foot = el('div', { class: 'activity-foot' });
     foot.appendChild(el('span', null, 'Since ' + fmtDate(habit.startedOn)));
-    var legend = el('span', { class: 'legend', 'aria-hidden': 'true' });
-    legend.appendChild(document.createTextNode('Missed'));
-    legend.appendChild(el('i', { class: 'key' }));
-    legend.appendChild(el('i', { class: 'key done' }));
-    legend.appendChild(document.createTextNode('Done'));
+    var legend = el('span', { class: 'legend', 'aria-label': 'Activity legend' });
+    function key(className, label, symbol) {
+      var item = el('span', { class: 'legend-item' });
+      item.appendChild(el('i', { class: 'key ' + className, 'aria-hidden': 'true' }, symbol || ''));
+      item.appendChild(document.createTextNode(label)); legend.appendChild(item);
+    }
+    key('', 'Not complete');
+    if (distanceCredit) key('near', habit.streakMinimum + '–<' + trim(habit.targetValue) + ' km · streak', '≈');
+    key('done', distanceCredit ? trim(habit.targetValue) + '+ km' : 'Done');
     foot.appendChild(legend);
     activity.appendChild(foot);
+    if (cells.length) {
+      selectDay(cells.find(function (cell) { return cell.dataset.date === selectedDay; }) || cells[cells.length - 1], false);
+      activity.appendChild(dayDetail);
+    }
 
     return activity;
   }
@@ -716,7 +849,7 @@ function rewardCelebration(before, after) {
       rows.appendChild(targetRow);
     }
 
-    if (habit.doneToday) {
+    if (habit.doneToday && !hasDistanceCredit(habit)) {
       var actualRow = el('div', { class: 'row' });
       actualRow.appendChild(el('span', null, 'Logged today'));
       var actual = el('input', {
@@ -818,6 +951,9 @@ function rewardCelebration(before, after) {
    * so a double tap cannot double-count, and a failure re-renders from the truth.
    */
   async function toggle(habit, button) {
+    if (savingHabits[habit.id]) return;
+    delete distanceErrors[habit.id];
+    savingHabits[habit.id] = true;
     var next = !habit.doneToday;
     var beforeJourney=journey;
     button.setAttribute('aria-pressed', String(next));
@@ -836,11 +972,13 @@ function rewardCelebration(before, after) {
       } else {
         await api('/api/habits/' + habit.id + '/check', { method: 'DELETE' });
       }
-      await refresh();
+      await refreshAfterSave();
+      delete distanceDrafts[habit.id];
       if(next)noticeProgress(beforeJourney);
     } catch (error) {
       toast('Check-in needs a refresh',error.message,true);
     } finally {
+      delete savingHabits[habit.id];
       button.disabled = false;
       render();
       var replacement=Array.from(root.querySelectorAll('[data-habit-id]')).find(function(card){return card.dataset.habitId===habit.id;});
@@ -848,16 +986,63 @@ function rewardCelebration(before, after) {
     }
   }
 
+  async function refreshAfterSave() {
+    /* A polling read already in flight may predate the write. Wait for it,
+       then request the saved state before updating streaks or rewards. */
+    if (refreshing) { try { await refreshing; } catch (error) {} }
+    await refresh();
+  }
+
+  function updateDistanceSaveState(id) {
+    /* Other cards can finish saving, or the panel can reopen, while this write
+       is pending. Update the current controls instead of captured DOM nodes. */
+    var card = Array.from(root.querySelectorAll('[data-habit-id]')).find(function (item) { return item.dataset.habitId === id; });
+    if (!card) return;
+    var pending = Boolean(savingHabits[id]);
+    var check = card.querySelector('.check');
+    if (check) check.disabled = pending;
+    var form = card.querySelector('.distance-form');
+    if (!form) return;
+    form.querySelector('input').disabled = pending;
+    var button = form.querySelector('button');
+    button.disabled = pending;
+    button.textContent = pending ? 'Saving…' : 'Save distance';
+    form.querySelector('.err').textContent = distanceErrors[id] || '';
+  }
+
   async function checkInWith(id, value) {
+    if (savingHabits[id]) return false;
+    delete distanceErrors[id];
+    savingHabits[id] = true;
+    var beforeJourney = journey;
+    updateDistanceSaveState(id);
     try {
       await api('/api/habits/' + id + '/check', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ value: value })
       });
-      await refresh();
-    } catch (error) { /* re-render from truth */ }
-    render();
+      await refreshAfterSave();
+      delete distanceDrafts[id];
+      delete savingHabits[id];
+      render();
+      noticeProgress(beforeJourney);
+      var savedHabit = habits.find(function (habit) { return habit.id === id; });
+      if (savedHabit && hasDistanceCredit(savedHabit) && (!beforeJourney || !journey || journey.xp <= beforeJourney.xp)) {
+        toast('Distance saved', entryDistance(savedHabit.todayValue) + ' km · ' + completionText(savedHabit.todayCompletion));
+      }
+      var replacement = Array.from(root.querySelectorAll('[data-habit-id]')).find(function (item) { return item.dataset.habitId === id; });
+      var replacementInput = replacement && replacement.querySelector('.distance-form input');
+      if (replacementInput) replacementInput.focus({ preventScroll: true });
+      return true;
+    } catch (error) {
+      distanceErrors[id] = 'Your distance could not be confirmed. Try saving again.';
+      toast('Distance needs a refresh', error.message, true);
+      return false;
+    } finally {
+      delete savingHabits[id];
+      updateDistanceSaveState(id);
+    }
   }
 
   async function save(id, patch) {
@@ -1375,8 +1560,8 @@ function rewardCelebration(before, after) {
       if(document.hidden||(!isOpen()&&!(homeHost&&homeHost.isConnected)))return;
       var before=journey;
       refresh().then(function(){
-        if(isOpen()&&tab==='today'&&!(root.activeElement&&root.activeElement.matches('input,select,textarea')))render();
-        noticeProgress(before);
+        if(isOpen()&&tab==='today'&&!Object.keys(savingHabits).length&&!(root.activeElement&&root.activeElement.matches('input,select,textarea')))render();
+        if(!Object.keys(savingHabits).length)noticeProgress(before);
       }).catch(function(){});
     }
     document.addEventListener('visibilitychange',refreshVisible);

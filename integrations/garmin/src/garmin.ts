@@ -19,7 +19,12 @@ const API_HEADERS = {
 };
 export type Session = {accessToken: string; refreshToken: string; clientId: string; expiresAt: number};
 export type Pending = {cookies: Record<string, string>; method: string; expiresAt: number};
+/** A recorded walk or run. The existing name is retained for import helpers. */
 export type Walk = {id: string; startedAt: string; day: string; distanceMeters: number};
+const DISTANCE_ACTIVITY_TYPES = new Set([
+  'walking', 'running', 'street_running', 'track_running', 'trail_running',
+  'treadmill_running', 'indoor_running', 'ultra_run', 'virtual_run', 'obstacle_run',
+]);
 export class GarminError extends Error {
   constructor(public code: string, message: string, public status = 502, public retryAt?: number) {super(message);}
 }
@@ -135,12 +140,12 @@ export function normalizeWalks(rows: unknown[], timezone: string, startDay: stri
   const unique = new Map<string, Walk>();
   for (const input of rows) {
     const row = object(input);
-    if (object(row.activityType).typeKey !== 'walking') continue;
+    if (!DISTANCE_ACTIVITY_TYPES.has(String(object(row.activityType).typeKey))) continue;
     const id = String(row.activityId ?? ''); const meters = Number(row.distance);
     const rawTime = typeof row.startTimeGMT === 'string' ? row.startTimeGMT.replace(' ', 'T') : '';
     const time = new Date(rawTime && !/(Z|[+-]\d\d:\d\d)$/.test(rawTime) ? rawTime + 'Z' : rawTime);
     if (!/^\d+$/.test(id) || !Number.isFinite(meters) || meters < 0 || !Number.isFinite(time.getTime())) {
-      throw new GarminError('invalid_walk', 'A Garmin walk is missing a valid date or distance. Your diary was not changed.');
+      throw new GarminError('invalid_walk', 'A Garmin walk or run is missing a valid date or distance. Your diary was not changed.');
     }
     const day = localDate(time, timezone);
     if (day >= startDay && day <= endDay) unique.set(id, {id, startedAt: time.toISOString(), day, distanceMeters: meters});

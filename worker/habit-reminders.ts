@@ -158,15 +158,17 @@ function localParts(timezone: string): { date: string; time: string } {
 /* ---------------------------------------------------------- bot commands */
 
 function statusLine(habit: Habit): string {
-  const mark = habit.doneToday ? '✅' : '⬜';
-  const done = habit.doneToday && habit.todayValue !== null
-    ? ` ${trim(habit.todayValue)}${habit.unit ? ' ' + habit.unit : ''}`
+  const mark = habit.todayCompletion === 'near' ? '≈' : habit.doneToday ? '✅' : '⬜';
+  const done = habit.todayHasEntry && habit.todayValue !== null
+    ? ` ${habit.streakMinimum !== null ? String(Math.floor((habit.todayValue + Number.EPSILON) * 100) / 100) : trim(habit.todayValue)}${habit.unit ? ' ' + escapeHtml(habit.unit) : ''}`
     : '';
+  const completion = habit.todayCompletion === 'near' ? ' · Almost there — streak counts'
+    : habit.todayCompletion === 'progress' ? ' · Progress saved — streak not complete' : '';
   const totals = habit.totalValue > 0 && habit.unit
     ? ` · ${trim(habit.totalValue)} ${escapeHtml(habit.unit)} total`
     : '';
   return (
-    `${mark} ${habit.emoji} <b>${escapeHtml(habit.name)}</b>${done}\n` +
+    `${mark} ${habit.emoji} <b>${escapeHtml(habit.name)}</b>${done}${completion}\n` +
     `   Day ${habit.dayNumber} · ${plural(habit.streak, 'day')} streak · best ${habit.longestStreak}${totals}`
   );
 }
@@ -250,15 +252,27 @@ export async function handleHabitCommand(env: Env, text: string): Promise<string
     const resolved = resolveHabit(habits, query);
     if (!resolved.habit) return resolved.error as string;
 
-    const result = await checkIn(env, resolved.habit.id, { value, source: 'telegram' });
+    // A bare /done explicitly finishes an incomplete distance habit. Preserve
+    // recorded distances when it is already complete, including near-goal days.
+    const checkValue = value === null && resolved.habit.streakMinimum !== null && !resolved.habit.doneToday
+      ? resolved.habit.targetValue : value;
+    const result = await checkIn(env, resolved.habit.id, { value: checkValue, source: 'telegram' });
     if (!result) return 'That habit no longer exists.';
 
     const habit = result.habit;
     const amount = habit.todayValue !== null
-      ? ` — ${trim(habit.todayValue)}${habit.unit ? ' ' + habit.unit : ''}`
+      ? ` — ${habit.streakMinimum !== null ? String(Math.floor((habit.todayValue + Number.EPSILON) * 100) / 100) : trim(habit.todayValue)}${habit.unit ? ' ' + escapeHtml(habit.unit) : ''}`
       : '';
 
-    if (!result.created) {
+    if (!habit.doneToday) {
+      return `⬜ <b>${escapeHtml(habit.name)}</b> progress saved${amount}\n` +
+        `${trim(habit.streakMinimum ?? habit.targetValue ?? 0)} km needed for today's streak credit. Today's streak is not complete.`;
+    }
+    if (habit.todayCompletion === 'near') {
+      return `≈ <b>${escapeHtml(habit.name)}</b>${amount} · Almost there\n` +
+        `Streak credit earned · ${plural(habit.streak, 'day')} streak. The full goal is ${trim(habit.targetValue as number)} km.`;
+    }
+    if (!result.created && resolved.habit.doneToday) {
       return `Already logged for today${amount}. ${plural(habit.streak, 'day')} streak intact.`;
     }
     return (

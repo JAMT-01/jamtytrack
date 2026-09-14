@@ -1,6 +1,7 @@
 import { dateInTimeZone, addCalendarDays } from '../shared/time';
 import { getSettings } from './db';
 import { habitRewards } from './habit-rewards.js';
+import { summarizeHabitEntries } from './habit-completion.js';
 
 /**
  * Habits — the behaviour side of the tracker.
@@ -53,6 +54,10 @@ export interface Habit extends HabitRow {
   longestStreak: number;
   doneToday: boolean;
   todayValue: number | null;
+  todayHasEntry: boolean;
+  todayCompletion: 'none' | 'progress' | 'near' | 'full';
+  streakMinimum: number | null;
+  historyEntries: {date: string; value: number | null; completion: 'progress' | 'near' | 'full'}[];
   /** Local dates done, newest first, capped at HISTORY_DAYS. Drives the dot grid. */
   history: string[];
   totalDone: number;
@@ -144,34 +149,25 @@ export async function listHabits(env: Env, includeArchived = false): Promise<Hab
        FROM habit_entries ORDER BY done_date DESC`
   ).all<{ habitId: string; doneDate: string; value: number | null }>();
 
-  const byHabit = new Map<string, { dates: Set<string>; values: number[]; today: number | null }>();
-  for (const habit of habits) byHabit.set(habit.id, { dates: new Set(), values: [], today: null });
+  const byHabit = new Map<string, {doneDate: string; value: number | null}[]>();
+  for (const habit of habits) byHabit.set(habit.id, []);
 
   for (const entry of entries.results ?? []) {
     const bucket = byHabit.get(entry.habitId);
     if (!bucket) continue;
-    bucket.dates.add(entry.doneDate);
-    if (entry.value !== null) bucket.values.push(Number(entry.value));
-    if (entry.doneDate === today) bucket.today = entry.value === null ? null : Number(entry.value);
+    bucket.push(entry);
   }
 
-  const earliest = addCalendarDays(today, -HISTORY_DAYS);
-
   return habits.map((habit) => {
-    const bucket = byHabit.get(habit.id) as { dates: Set<string>; values: number[]; today: number | null };
-    const streak = computeStreak(bucket.dates, today);
-    const totalValue = bucket.values.reduce((sum, value) => sum + value, 0);
+    const {completedDates, ...progress} = summarizeHabitEntries(habit, byHabit.get(habit.id) ?? [], today);
+    const streak = computeStreak(new Set(completedDates), today);
     return {
       ...habit,
+      ...progress,
       dayNumber: daysBetween(habit.startedOn, today) + 1,
       streak: streak.current,
       longestStreak: streak.longest,
-      doneToday: bucket.dates.has(today),
-      todayValue: bucket.today,
-      history: [...bucket.dates].filter((date) => date > earliest).sort().reverse(),
-      totalDone: bucket.dates.size,
-      totalValue,
-      rewards: habitRewards({...habit,totalValue}, bucket.dates, today),
+      rewards: habitRewards({...habit,totalValue:progress.totalValue}, completedDates, today),
     };
   });
 }
