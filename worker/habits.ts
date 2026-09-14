@@ -1,5 +1,6 @@
 import { dateInTimeZone, addCalendarDays } from '../shared/time';
 import { getSettings } from './db';
+import { habitRewards } from './habit-rewards.js';
 
 /**
  * Habits — the behaviour side of the tracker.
@@ -57,6 +58,7 @@ export interface Habit extends HabitRow {
   totalDone: number;
   /** Sum of `value` across every entry — total km walked, for a habit with a unit. */
   totalValue: number;
+  rewards: ReturnType<typeof habitRewards>;
 }
 
 /** How much history the UI gets. Ten weeks of dots is a readable grid and a
@@ -158,6 +160,7 @@ export async function listHabits(env: Env, includeArchived = false): Promise<Hab
   return habits.map((habit) => {
     const bucket = byHabit.get(habit.id) as { dates: Set<string>; values: number[]; today: number | null };
     const streak = computeStreak(bucket.dates, today);
+    const totalValue = bucket.values.reduce((sum, value) => sum + value, 0);
     return {
       ...habit,
       dayNumber: daysBetween(habit.startedOn, today) + 1,
@@ -167,7 +170,8 @@ export async function listHabits(env: Env, includeArchived = false): Promise<Hab
       todayValue: bucket.today,
       history: [...bucket.dates].filter((date) => date > earliest).sort().reverse(),
       totalDone: bucket.dates.size,
-      totalValue: bucket.values.reduce((sum, value) => sum + value, 0),
+      totalValue,
+      rewards: habitRewards({...habit,totalValue}, bucket.dates, today),
     };
   });
 }

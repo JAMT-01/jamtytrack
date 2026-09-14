@@ -56,6 +56,6 @@
     }
   ],
   "annotations": {
-    "workers/message": "Move Garmin connection controls into existing Settings; preserve connected session and diary"
+    "workers/message": "Add habit momentum, XP, streak milestones and badges from saved history"
   }
 }
