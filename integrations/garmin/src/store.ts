@@ -12,8 +12,8 @@ export async function connection(db: D1Database): Promise<Connection> {
   return row;
 }
 export async function config(db: D1Database, habitId: string) {
-  const habit = await db.prepare('SELECT id,name,target_value,unit,archived FROM habits WHERE id=?').bind(habitId)
-    .first<{id:string;name:string;target_value:number;unit:string;archived:number}>();
+  const habit = await db.prepare('SELECT id,name,target_value,unit,archived,started_on FROM habits WHERE id=?').bind(habitId)
+    .first<{id:string;name:string;target_value:number;unit:string;archived:number;started_on:string}>();
   if (!habit || habit.archived || habit.unit !== 'km' || !(habit.target_value > 0)) {
     throw new GarminError('habit_config', 'The linked walking habit must be active with a target in km.', 400);
   }
@@ -75,7 +75,8 @@ export async function reconcile(db: D1Database, habitId: string, walks: Walk[], 
   statements.push(db.prepare(`UPDATE garmin_habit_days SET entry_id=(SELECT id FROM habit_entries e
     WHERE e.habit_id=garmin_habit_days.habit_id AND e.done_date=day AND e.source='garmin')
     WHERE habit_id=? AND day>=? AND day<=? AND suppressed=0`).bind(habitId,start,end));
-  statements.push(db.prepare(`UPDATE garmin_connection SET last_sync_at=?,last_error=NULL,error_code=NULL,cooldown_until=0 WHERE id=1`)
-    .bind(new Date().toISOString()));
+  statements.push(db.prepare(`UPDATE garmin_connection SET last_sync_at=?,last_error=NULL,error_code=NULL,cooldown_until=0,
+    since_day=CASE WHEN since_day IS NULL OR since_day>? THEN ? ELSE since_day END WHERE id=1`)
+    .bind(new Date().toISOString(),start,start));
   await db.batch(statements);
 }

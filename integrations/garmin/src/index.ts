@@ -28,11 +28,14 @@ async function status(env: Env) {
     lastSync:row.last_sync_at,error:row.last_error,cooldownUntil:row.cooldown_until,habitName:settings.habit.name,targetKm:settings.habit.target_value,
     todayKm:Number(sum?.meters||0)/1000,recent:recent.results};
 }
-async function sync(env: Env) {
+async function sync(env: Env, history=false) {
   const row=await connection(env.DB);
   if(!row.enabled||!row.session_cipher)return;
   await allowAttempt(env.DB,false);
-  const settings=await config(env.DB,env.HABIT_ID); const start=syncStart(row,settings.today,settings.timezone);
+  const settings=await config(env.DB,env.HABIT_ID);
+  const start=history?settings.habit.started_on:syncStart(row,settings.today,settings.timezone);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||start>settings.today)throw new GarminError('history_date','The walking habit needs a valid start date.',400);
+  const existing=history?await env.DB.prepare('SELECT done_date FROM habit_entries WHERE habit_id=?').bind(env.HABIT_ID).all<{done_date:string}>():null;
   let session=await unseal<Session>(row.session_cipher,env.ENCRYPTION_KEY);const client=new GarminClient();
   const saveSession=async()=>env.DB.prepare('UPDATE garmin_connection SET session_cipher=? WHERE id=1').bind(await seal(session,env.ENCRYPTION_KEY)).run();
   if(session.expiresAt<Date.now()+300_000){session=await client.refresh(session);await saveSession();}
@@ -46,6 +49,14 @@ async function sync(env: Env) {
   const walks=normalizeWalks(rows,settings.timezone,start,settings.today);
   await reconcile(env.DB,env.HABIT_ID,walks,start,settings.today,settings.habit.target_value);
   console.log(JSON.stringify({event:'garmin_sync',walks:walks.length}));
+  if(history){
+    const entries=await env.DB.prepare('SELECT done_date FROM habit_entries WHERE habit_id=? AND done_date>=? AND done_date<=?').bind(env.HABIT_ID,start,settings.today).all<{done_date:string}>();
+    const before=new Set(existing!.results.map(entry=>entry.done_date));const after=new Set(entries.results.map(entry=>entry.done_date));
+    const totals=new Map<string,number>();for(const walk of walks)totals.set(walk.day,(totals.get(walk.day)||0)+walk.distanceMeters);
+    const days=[...totals].sort(([a],[b])=>a.localeCompare(b)).map(([day,meters])=>({day,km:meters/1000,
+      completed:after.has(day),added:after.has(day)&&!before.has(day)}));
+    return {start,end:settings.today,days,added:days.filter(day=>day.added).length};
+  }
 }
 async function complete(env: Env, result: {session:Session}|{pending:Pending}) {
   if('pending' in result){
@@ -82,8 +93,9 @@ export default {
         return json({error:'Not found'},404);
       }
       if(request.method!=='POST')return json({error:'Method not allowed'},405);
-      if(!['/api/login','/api/verify','/api/sync','/api/disconnect','/api/cancel'].includes(path))return json({error:'Not found'},404);
+      if(!['/api/login','/api/verify','/api/sync','/api/backfill','/api/disconnect','/api/cancel'].includes(path))return json({error:'Not found'},404);
       const input=await readBody(request);
+      let history;
       await locked(env.DB,async()=>{
         if(path==='/api/login'){
           if(typeof input.email!=='string'||input.email.length>254||!input.email.includes('@')||typeof input.password!=='string'||!input.password||input.password.length>1024)
@@ -99,6 +111,10 @@ export default {
           const row=await connection(env.DB);
           if(row.last_sync_at&&Date.now()-Date.parse(row.last_sync_at)<60_000)throw new GarminError('busy','Your walks were just synced. Try again in a minute.',429);
           await sync(env);
+        }else if(path==='/api/backfill'){
+          const row=await connection(env.DB);
+          if(!row.enabled||!row.session_cipher)throw new GarminError('reconnect','Connect Garmin before checking earlier walks.',400);
+          history=await sync(env,true);
         }else if(path==='/api/disconnect'){
           await env.DB.batch([
             env.DB.prepare('UPDATE garmin_connection SET session_cipher=NULL,pending_cipher=NULL,enabled=0,last_error=NULL,error_code=NULL WHERE id=1'),
@@ -107,7 +123,7 @@ export default {
           ]);
         }else await env.DB.prepare('UPDATE garmin_connection SET pending_cipher=NULL,last_error=NULL,error_code=NULL WHERE id=1').run();
       });
-      return json(await status(env));
+      return json({...await status(env),history});
     }catch(error){const safe=await fail(env,error);return json({error:safe.message,code:safe.code,retryAt:safe.retryAt},safe.status);}
   },
   async scheduled(_event,env){

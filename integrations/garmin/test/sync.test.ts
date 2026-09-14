@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {Script} from 'node:vm';
-import {GarminClient, normalizeWalks} from '../src/garmin.ts';
+import {GarminClient, normalizeWalks, localDate, offsetDay} from '../src/garmin.ts';
 import {reconcile, locked, allowAttempt} from '../src/store.ts';
 import {seal, unseal, authorized} from '../src/secrets.ts';
 import {CLIENT} from '../src/page.ts';
@@ -90,6 +90,31 @@ test('API errors report the existing retry deadline and invalid input cannot res
  assert.equal(paused.status,429);assert.equal((await paused.json()).retryAt,deadline);
  const invalid=await post({});assert.equal(invalid.status,400);
  assert.equal(f.sqlite.prepare('SELECT cooldown_until FROM garmin_connection').get().cooldown_until,deadline);
+});
+test('history import fills qualifying gaps from the habit start, preserves manual entries, and is repeatable',async t=>{
+ const f=fixture();const token='a'.repeat(64);const key='b'.repeat(64);
+ const today=localDate(new Date(),timezone),start=offsetDay(today,-3),second=offsetDay(today,-2),third=offsetDay(today,-1);
+ f.sqlite.exec(`ALTER TABLE habits ADD COLUMN name TEXT DEFAULT 'Walk 10 km';
+ ALTER TABLE habits ADD COLUMN target_value REAL DEFAULT 10;ALTER TABLE habits ADD COLUMN unit TEXT DEFAULT 'km';
+ ALTER TABLE habits ADD COLUMN archived INTEGER DEFAULT 0;ALTER TABLE habits ADD COLUMN started_on TEXT;
+ CREATE TABLE settings(timezone TEXT);INSERT INTO settings VALUES('America/Buenos_Aires');`);
+ f.sqlite.prepare('UPDATE habits SET started_on=?').run(start);
+ f.sqlite.prepare("INSERT INTO habit_entries VALUES('manual','walk',?,10,'Original check-in','app','original')").run(start);
+ const cipher=await seal({accessToken:'test-access',refreshToken:'test-refresh',clientId:'test-client',expiresAt:Date.now()+86_400_000},key);
+ f.sqlite.prepare('UPDATE garmin_connection SET session_cipher=?,enabled=1,since_day=?').run(cipher,today);
+ const rows=[activity(1,12000,start+' 15:00:00'),activity(2,11000,second+' 15:00:00'),activity(3,4000,third+' 15:00:00'),activity(4,6000,third+' 17:00:00'),activity(5,9000,today+' 15:00:00')];
+ t.mock.method(globalThis,'fetch',async(url:string)=>{
+  assert.equal(new URL(url).pathname,'/activitylist-service/activities/search/activities');
+  assert.equal(new URL(url).searchParams.get('startDate'),offsetDay(start,-1));return Response.json(rows);
+ });
+ const post=()=>worker.fetch(new Request('https://garmin.internal/api/backfill',{method:'POST',
+  headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:'{}'}),
+  {DB:f.db,GARMIN_SYNC_TOKEN:token,ENCRYPTION_KEY:key,HABIT_ID:'walk'},{});
+ const response=await post();assert.equal(response.status,200);const result=await response.json();
+ assert.equal(result.history.added,2);assert.deepEqual(result.history.days.filter(day=>day.added).map(day=>day.day),[second,third]);
+ assert.equal(f.entries().length,3);assert.equal(f.entries()[0].note,'Original check-in');assert.equal(f.entries()[0].value,10);
+ assert.equal(f.sqlite.prepare('SELECT since_day FROM garmin_connection').get().since_day,start);
+ assert.equal((await (await post()).json()).history.added,0);assert.equal(f.entries().length,3);
 });
 test('MFA keeps cookies but no password; success yields a renewable session',async()=>{
  const responses=[Response.json({responseStatus:{type:'MFA_REQUIRED'},customerMfaInfo:{mfaLastMethodUsed:'email'}},{headers:{'set-cookie':'sso=test; Secure; HttpOnly'}}),

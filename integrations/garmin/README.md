@@ -72,7 +72,14 @@ activity titles/routes.
   do not. Activity IDs are unique, and distances remain in meters until summed.
 - Garmin UTC start times are assigned to the app's configured timezone. Activity
   queries include an adjacent-day margin so timezone boundaries do not lose walks.
-- Automatic history begins on the day of connection. Each sync rechecks the last
+- Automatic history begins on the day of connection. **Fill previous days** in
+  Settings explicitly imports recorded walks from the habit's `started_on` date
+  through today. It uses the same session, lock, distance threshold, and manual
+  override rules; repeated imports do not create duplicate check-ins. The result
+  lists daily distances and which missing days were added. A complete activity
+  response is required before any diary changes, and the imported start date is
+  saved in the same transaction so recent imported days remain eligible for sync.
+- Each ordinary sync rechecks the last
   week, or the period since the last successful sync after an outage, whichever
   is longer. Older edits outside this window are not automatically rechecked.
 - Partial distances are stored in `garmin_activities`. Only reaching the target
@@ -87,10 +94,11 @@ activity titles/routes.
 
 ## Verification on 2026-09-13
 
-17 connector tests cover distance thresholds, timezone boundaries, duplicates,
+18 connector tests cover distance thresholds, timezone boundaries, duplicates,
 updates/deletions, manual overrides, transaction rollback, concurrency, encrypted
 storage, MFA, rejected requests, and cooldown behavior in the API and browser
-client (including failed status refreshes and timer expiry without requests).
+client (including failed status refreshes and timer expiry without requests),
+plus an authenticated history import with manual entries and repeated runs.
 The main bundle has eight passing login and
 gateway tests covering authentication and cross-origin requests.
 
@@ -110,6 +118,7 @@ Connector version at setup: `eed6fea5-d9de-429b-b3c5-a71ad6fba671`.
 Connector version with cooldown fix: `15e98662-815c-4456-b54f-266da0c6c67e`.
 Main app version with Settings integration: `88b30764-a4cf-4d8e-ae31-a7a469a8bfbc`.
 Connector version with Settings integration: `d4f73260-ab6f-4889-853c-77f040936e05`.
+Connector version with history import: `944f25dc-c027-40e5-b8a3-400db4c43fd4`.
 The existing 50 meals and nine habit entries were unchanged before connection.
 
 The main app is the recovered `master` artifact. Do not deploy the separate
